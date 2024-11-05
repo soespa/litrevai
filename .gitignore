@@ -1,0 +1,9 @@
+.pytest_cache
+.idea
+.DS_Store
+tests/db/*
+/notebooks/
+/db/
+.env
+*zotero.sqlite
+/example_data/

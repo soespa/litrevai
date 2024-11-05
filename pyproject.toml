@@ -1,0 +1,97 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "litrevai"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Soeren Sparmann", email = "sparmann@mail.uni-paderborn.de" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "sqlalchemy",
+    "bibtexparser==2.0.0b7",
+    "requests",
+    "pandas",
+    "tqdm",
+    "pdfminer.six",
+    "openpyxl",
+    "python-dotenv",
+    "lancedb",
+    "huggingface_hub",
+    "openai",
+    "plotly",
+    "nltk",
+    "bertopic",
+    "langchain-text-splitters"
+]
+
+[project.urls]
+Documentation = "https://github.com/unknown/litrevai#readme"
+Issues = "https://github.com/unknown/litrevai/issues"
+Source = "https://github.com/unknown/litrevai"
+
+[tool.hatch.version]
+path = "src/litrevai/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+[tool.hatch.envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/litrevai tests}"
+
+[tool.coverage.run]
+source_pkgs = ["litrevai", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/litrevai/__about__.py",
+]
+
+[tool.coverage.paths]
+litrevai = ["src/litrevai", "*/litrevai/src/litrevai"]
+tests = ["tests", "*/litrevai/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
