@@ -1,5 +1,7 @@
 from random import randint
 from typing import List, Mapping
+
+import bibtexparser
 import pandas as pd
 from sqlalchemy.orm import Session
 from tqdm.auto import tqdm
@@ -7,13 +9,16 @@ import os
 from .llm import BaseLLM
 from .pdf2text import pdf2text
 from .query import Query
-from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem
+from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes
 from .topic_modelling import TopicModel
-from .util import parse_bibtex
+from .util import parse_bibtex, _resolve_item_keys
 from .project import Project
 from .database import Database
 from .zotero_connector import ZoteroConnector
 from .vector_store import VectorStore
+from typing import TypeAlias
+
+ItemCollection: TypeAlias = list[str] | str | pd.DataFrame
 
 
 class LiteratureReview:
@@ -23,7 +28,7 @@ class LiteratureReview:
 
     db: Database
     vs: VectorStore
-    llm: BaseLLM
+    llm: BaseLLM | None = None
 
     def __init__(self, path='./db', llm=None):
 
@@ -49,6 +54,16 @@ class LiteratureReview:
         return item
 
 
+
+    def get_project_by_id(self, project_id) -> Project:
+        project = Project(self, project_id)
+        return project
+
+
+    def get_query_by_id(self, query_id) -> Query:
+        query = Query(self, query_id)
+        return query
+
     @property
     def collections(self):
         with self.Session() as session:
@@ -65,6 +80,55 @@ class LiteratureReview:
 
         df = BibliographyItem.to_df(items)
         return df
+
+
+    def to_bibtex(self, items, file_path=None) -> str:
+        """
+        Exports the items to a bibtex string.
+        :param items:
+        :param file_path:
+        :return: Bibtex string
+        """
+        keys = _resolve_item_keys(items)
+
+        with self.Session() as session:
+            items = session.query(BibliographyItem).where(BibliographyItem.key.in_(keys)).all()
+            library = bibtexparser.Library()
+
+            for item in items:
+
+                authors = " and ".join([
+                    f"{author.firstName} {author.lastName}" for author in item.authors
+                ])
+
+                field_dict = {
+                    'title': item.title,
+                    'author': authors,
+                    'year': str(item.year) if item.year else '',
+                    'journal': item.journal,
+                    'publisher': item.publisher,
+                    'doi': item.DOI,
+                    'isbn': item.ISBN,
+                    'series': item.series,
+                    'keywords': item.keywords,
+                    'abstract': item.abstract,
+                    'date': item.date,
+                }
+
+                field_dict = {key: value for key, value in field_dict.items() if value is not None}
+
+                fields = [bibtexparser.model.Field(key=key, value=value) for key, value in field_dict.items()]
+                entry_type = item.typeName or EntryTypes.MISC
+                entry = bibtexparser.model.Entry(entry_type=entry_type, key=item.key, fields=fields)
+                library.add(entry)
+
+        s = bibtexparser.write_string(library=library)
+
+        if file_path is not None:
+            with open(file_path, 'w') as f:
+                f.write(s)
+
+        return s
 
     def get_library(self, library_id):
         with self.Session() as session:
@@ -98,12 +162,7 @@ class LiteratureReview:
         }
 
 
-    # def get_or_create_project(self, name):
-    #     project_model = self.db.get_or_create_project(name)
-    #     project = Project(self, project_model.id)
-    #     return project
-
-    def create_project(self, name: str) -> Project:
+    def create_project(self, name: str, exists_ok=True) -> Project:
         """
         Creates a Project with the given (unique) name.
 
@@ -116,7 +175,8 @@ class LiteratureReview:
             ).first()
 
             if project_model:
-                raise Exception(f'Project with name {name} already exits.')
+                if not exists_ok:
+                    raise Exception(f'Project with name {name} already exits.')
 
             else:
                 project_model = ProjectModel(
@@ -147,16 +207,36 @@ class LiteratureReview:
                 raise Exception('Project with name {name} does not exists.')
 
 
-    def resolve_project(self, project):
+    def _resolve_project_id(self, project: Project | int | None):
         if project is None:
             return None
+        elif isinstance(project, int):
+            return project
+        elif isinstance(project, Project):
+            return project.project_id
+        elif isinstance(project, str):
+            return self.projects.get(project)
+        else:
+            raise TypeError(f'Parameter project must be of type Project, int, str or None but was of type {type(project)}')
 
-        if isinstance(project, int):
-            project_id = project
-        if isinstance(project, Project):
-            project_id = project.project_id
 
-        return project_id
+    def set_llm(self, llm: BaseLLM):
+        self.llm = llm
+        self.vs.llm = llm
+
+    def import_txt(self, item_key: str, file_path: str, bibtex: dict):
+
+        with self.Session() as session:
+
+            bibtex['ID'] = item_key
+
+            with open(file_path, 'r') as f:
+                text = f.read()
+
+            item = self.db.add_item_by_bibtex(bibtex, text)
+
+            self.vs.add_text(item_key, text)
+
 
     def import_bibtex(self, path_to_bibtex: str, project: int | Project = None):
         """
@@ -168,7 +248,7 @@ class LiteratureReview:
         :return:
         """
 
-        project_id = self.resolve_project(project)
+        project_id = self._resolve_project_id(project)
 
         entries = parse_bibtex(path_to_bibtex)
         for entry in entries:
@@ -216,8 +296,10 @@ class LiteratureReview:
     def import_zotero(
             self,
             zotero_path: str | None = None,
-            filter_type_names: List[str] | None = None,
-            filter_libraries: List[str] | None = None):
+            filter_type_names: List[str] | None = ['journalArticle', 'conferencePaper'],
+            filter_libraries: List[str] | None = None,
+            like: str = None
+        ):
         """
         Connects to a local instance of Zotero and add items that fit to the filter criteria.
 
@@ -230,11 +312,9 @@ class LiteratureReview:
 
         zotero = ZoteroConnector(zotero_path=zotero_path)
 
-        self.db.sync_zotero(zotero, filter_type_names, filter_libraries)
+        self.db.import_zotero(zotero, filter_type_names, filter_libraries, like)
 
-        for key, row in self.db.items.iterrows():
-            text = row['text']
-            self.vs.add_text(key, text)
+        self.update_vector_store()
 
     def run_query(self, query_id, include_keys=None, save_responses=True, debug=False):
         with self.db.Session() as session:

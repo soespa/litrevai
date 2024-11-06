@@ -6,7 +6,7 @@ import pandas as pd
 from .prompt import Prompt
 from .schema import QueryModel
 from .topic_modelling import TopicModel
-from .util import resolve_items
+from .util import _resolve_item_keys
 
 if TYPE_CHECKING:
     from .literature_review import LiteratureReview
@@ -90,9 +90,9 @@ class Query:
         return query_model
 
     @property
-    def project(self):
-        from .project import Project
-        project = Project(self.lr, self._query_model.project_id)
+    def project(self) -> 'Project':
+        project_id = self._query_model.project_id
+        project = self.lr.get_project_by_id(project_id)
         return project
 
     def interactive_labelling(self):
@@ -188,7 +188,7 @@ class Query:
         ]))
 
     def run(self, items: List[str] | pd.DataFrame | None = None):
-        include_keys = resolve_items(items)
+        include_keys = _resolve_item_keys(items)
 
         self.lr.run_query(self.query_id, include_keys=include_keys)
 

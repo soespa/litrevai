@@ -35,6 +35,171 @@
             
   <section id="literaturereview">
 <h1>LiteratureReview<a class="headerlink" href="#literaturereview" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.literature_review.</span></span><span class="sig-name descname"><span class="pre">LiteratureReview</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./db'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">llm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview" title="Link to this definition">¶</a></dt>
+<dd><p>Literature Review manages access to projects, the database and the vector store.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.create_project">
+<span class="sig-name descname"><span class="pre">create_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exists_ok</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.create_project" title="Link to this definition">¶</a></dt>
+<dd><p>Creates a Project with the given (unique) name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unique name to identify the project.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="project.html#litrevai.project.Project" title="litrevai.project.Project"><code class="xref py py-class docutils literal notranslate"><span class="pre">Project</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Project that has been created.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.delete_project">
+<span class="sig-name descname"><span class="pre">delete_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.delete_project" title="Link to this definition">¶</a></dt>
+<dd><p>Deletes the project with the given name. Raises an error if there is no project with the given name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Name of the project that should be deleted.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.get_item">
+<span class="sig-name descname"><span class="pre">get_item</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.get_item" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the BibliographyItem for the given key.
+:type item_key: 
+:param item_key:
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.import_bibtex">
+<span class="sig-name descname"><span class="pre">import_bibtex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path_to_bibtex</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.import_bibtex" title="Link to this definition">¶</a></dt>
+<dd><p>Imports BibliographyItems into the database from a Bibtex File. The entries are expected to have a <cite>file</cite> field
+containing the absolute path to the corresponding PDF file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path_to_bibtex</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>)</p></li>
+<li><p><strong>project_id</strong> – Optional Project ID. Items are automatically added to the project</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.import_zotero">
+<span class="sig-name descname"><span class="pre">import_zotero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zotero_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['journalArticle',</span> <span class="pre">'conferencePaper']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_libraries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.import_zotero" title="Link to this definition">¶</a></dt>
+<dd><p>Connects to a local instance of Zotero and add items that fit to the filter criteria.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>zotero_path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>) – Directory containing Zotero Files</p></li>
+<li><p><strong>filter_type_names</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>) – One of
+-</p></li>
+<li><p><strong>filter_libraries</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.items">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">items</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrame</span></em><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.items" title="Link to this definition">¶</a></dt>
+<dd><p>Returns all the items in the database as a DataFrame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>DataFrame containing all items in the database.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.projects">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">projects</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="project.html#litrevai.project.Project" title="litrevai.project.Project"><span class="pre">Project</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.projects" title="Link to this definition">¶</a></dt>
+<dd><p>Provides access to projects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Returns a dict containing all projects which can be accessed by their names.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.run_project">
+<span class="sig-name descname"><span class="pre">run_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.run_project" title="Link to this definition">¶</a></dt>
+<dd><p>Runs over all items in a project</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>include_keys</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]]</span>)</p></li>
+<li><p><strong>project_id</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.test_project">
+<span class="sig-name descname"><span class="pre">test_project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.test_project" title="Link to this definition">¶</a></dt>
+<dd><p>Tests all queries from the project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>project_id</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.to_bibtex">
+<span class="sig-name descname"><span class="pre">to_bibtex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.to_bibtex" title="Link to this definition">¶</a></dt>
+<dd><p>Exports the items to a bibtex string.
+:type items: 
+:param items:
+:type file_path: 
+:param file_path:
+:rtype: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:return: Bibtex string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.update_vector_store">
+<span class="sig-name descname"><span class="pre">update_vector_store</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">redo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.update_vector_store" title="Link to this definition">¶</a></dt>
+<dd><p>Looks for items that have not been added to the vector store yet and adds them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>redo</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True, deletes all entries in the vector store before adding all items.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

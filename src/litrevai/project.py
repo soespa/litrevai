@@ -3,7 +3,7 @@ from typing import List, TYPE_CHECKING
 
 import pandas as pd
 
-from .util import resolve_items
+from .util import _resolve_item_keys
 from .prompt import Prompt
 from .query import Query
 from .schema import BibliographyItem, ProjectModel, Collection, Library, QueryModel
@@ -120,7 +120,7 @@ class Project:
         if items is None:
             items = self.items
 
-        keys = resolve_items(items)
+        keys = _resolve_item_keys(items)
 
         self.lr.rag(prompt=prompt, keys=keys)
 
@@ -159,7 +159,7 @@ class Project:
 
     def add_items(self, items):
 
-        keys = resolve_items(items)
+        keys = _resolve_item_keys(items)
 
         with self.Session() as session:
             self.db.add_items_to_project(session, keys, self.project_id)
@@ -167,7 +167,7 @@ class Project:
 
     def remove_items(self, items):
 
-        keys = resolve_items(items)
+        keys = _resolve_item_keys(items)
 
         with self.Session() as session:
             self.db.remove_items_from_project(session, keys, self.project_id)
@@ -194,7 +194,7 @@ class Project:
         items = self.items[['DOI', 'ISBN', 'title', 'year', 'authors_list']]
         df = responses.join(items)
 
-        keys = resolve_items(items)
+        keys = _resolve_item_keys(items)
 
         df = df.loc[keys]
         df.to_excel(filepath)

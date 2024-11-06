@@ -4,7 +4,7 @@
 "use strict";
 
 /**
- * Simple result scoring name.
+ * Simple result scoring code.
  */
 if (typeof Scorer === "undefined") {
   var Scorer = {

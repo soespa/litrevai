@@ -13,6 +13,9 @@ class CustomEndpoint(BaseLLM):
         if not endpoint_url:
             endpoint_url = os.getenv('ENDPOINT_URL')
 
+            if endpoint_url is None:
+                raise Exception('No Endpoint URL specified.')
+
         self.endpoint_url = endpoint_url
         self.api_key = api_key
 
@@ -27,7 +30,7 @@ class CustomEndpoint(BaseLLM):
             top_p=0.9
         ):
 
-        url = self.endpoint_url + '/inference/'
+        url = self.endpoint_url
 
         headers = {
             'Authorization': self.api_key

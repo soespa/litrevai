@@ -8,6 +8,7 @@ from pdfminer.layout import LTTextContainer, LTFigure, LTChar, LTTextBoxHorizont
 
 
 
+
 def load_binder(base_path: str):
     d = {}
     article = []

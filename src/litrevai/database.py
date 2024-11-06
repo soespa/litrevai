@@ -2,8 +2,9 @@ from typing import List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from tqdm.auto import tqdm
-from .binder import load_binder
+from .acm import load_binder
 from .pdf2text import pdf2text
+from .prompt import Prompt
 from .schema import *
 from .util import timer_func
 from .zotero_connector import ZoteroConnector
@@ -370,13 +371,12 @@ class Database:
         return df
 
 
-
-    def sync_zotero(self, zotero: ZoteroConnector, filter_type_names=None, filter_libraries=None, prog_callback=None):
+    def import_zotero(self, zotero: ZoteroConnector, filter_type_names=None, filter_libraries=None, like= None, prog_callback=None):
         """
 
         :param zotero:
         :param filter_type_names: List of entry types to be included. Allowed options [conferencePaper, journalArticle, book, bookSection]
-        :param filter_libraries: List of groups to be included. If None, include all.
+        :param filter_libraries: List of groups to be included. If None, include all. For personal library use "Personal".
         :return:
         """
 
@@ -387,6 +387,8 @@ class Database:
             authors = zotero.authors
             collections = zotero.collections
             libraries = zotero.libraries
+
+            filter_libraries = libraries[libraries['name'].isin(filter_libraries)].index.to_list()
 
             if filter_libraries:
                 items = items[items.libraryID.isin(filter_libraries)]
@@ -450,9 +452,17 @@ class Database:
                     print(e)
                     continue
 
+                typeName = row['typeName']
+
+                if typeName in zotero_to_entrytype:
+                    entry_type = zotero_to_entrytype[typeName]
+                else:
+                    entry_type = EntryTypes.MISC
+
                 bib_item = BibliographyItem(key=key)
+                bib_item.zotero_key = key
                 bib_item.title = row['title']
-                bib_item.typeName = row['typeName']
+                bib_item.typeName = entry_type.value
                 bib_item.text = text
                 bib_item.path = row['path']
                 bib_item.year = row['year']

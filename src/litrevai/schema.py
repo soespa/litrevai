@@ -1,12 +1,41 @@
 import json
 import re
+from enum import Enum
+from typing import Literal
+
 import pandas as pd
 from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column, Session
 from sqlalchemy.sql import func
 
-from .prompt import prompt_registry, Prompt
+from .prompt import prompt_registry
 
+
+class EntryTypes(Enum):
+    ARTICLE = 'article'
+    BOOK = 'book'
+    BOOKLET = 'booklet'
+    CONFERENCE = 'conference'
+    INBOOK = 'inbook'
+    INCOLLECTION = 'incollection'
+    INPROCEEDINGS = 'inproceedings'
+    MANUAL = 'manual'
+    MASTERSTHESIS = 'mastersthesis'
+    MISC = 'misc'
+    PHDTHESIS = 'phdthesis'
+    PROCEEDINGS = 'proceedings'
+    TECHREPORT = 'techreport'
+    UNPUBLISHED = 'unpublished'
+
+
+zotero_to_entrytype = {
+    "book": EntryTypes.BOOK,
+    "bookSection": EntryTypes.INBOOK,
+    "conferencePaper": EntryTypes.INPROCEEDINGS,
+    "journalArticle": EntryTypes.ARTICLE,
+    "report": EntryTypes.TECHREPORT,
+    "thesis": EntryTypes.PHDTHESIS,
+}
 
 
 class Base(DeclarativeBase):
@@ -47,15 +76,18 @@ class BibliographyItem(Base):
 
     # Define columns for the table
     key = mapped_column(String, nullable=False, primary_key=True)
+    zotero_key = mapped_column(String, nullable=True, unique=True)
     typeName = mapped_column(String, nullable=True)
-    DOI = mapped_column(String, nullable=True)
+    DOI = mapped_column(String, nullable=True, unique=True)
     ISBN = mapped_column(String, nullable=True)
     title = mapped_column(String, nullable=True)
+    date = mapped_column(String, nullable=True)
     year = mapped_column(Integer, nullable=True)
     series = mapped_column(String, nullable=True)
     journal = mapped_column(String, nullable=True)
     publisher = mapped_column(String, nullable=True)
     keywords = mapped_column(String, nullable=True)
+    note = mapped_column(String, nullable=True)
 
     path = mapped_column(String, nullable=True)
     abstract = mapped_column(String, nullable=True)
@@ -79,6 +111,9 @@ class BibliographyItem(Base):
         authors = '; '.join(self.authors_list)
         return f"<BibliographyEntry(key={self.key}, title={self.title}, authors={authors})>"
 
+
+    def to_bibtex(self):
+        pass
 
     def zotero_link(self):
         return f"zotero://select/items/{self.key}"

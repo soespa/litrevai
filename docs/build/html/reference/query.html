@@ -35,6 +35,25 @@
             
   <section id="query">
 <h1>Query<a class="headerlink" href="#query" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="litrevai.query.Query">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.query.</span></span><span class="sig-name descname"><span class="pre">Query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_id</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.query.Query" title="Link to this definition">¶</a></dt>
+<dd><p>A query is like a task to be performed as part of a project.
+It consists of a prompt and is identified by a (unique) name.
+When a query is run on an item, a Response object is created,
+which stores the answer to the query for that item.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.query.Query.as_filter">
+<span class="sig-name descname"><span class="pre">as_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.query.Query.as_filter" title="Link to this definition">¶</a></dt>
+<dd><p>Return all item keys, where the value of the responses to the query are equal to the specified value.
+:type value: 
+:param value:
+:rtype: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>
+:return:</p>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 
 

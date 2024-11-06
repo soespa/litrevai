@@ -33,6 +33,7 @@ dependencies = [
     "pdfminer.six",
     "openpyxl",
     "python-dotenv",
+    "pyarrow",
     "lancedb",
     "huggingface_hub",
     "openai",

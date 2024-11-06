@@ -1,6 +1,6 @@
 python-dotenv
 requests
-bibtexparser==2.0.0b7
+"bibtexparser==2.0.0b7"
 pandas
 SQLAlchemy
 tqdm
@@ -12,8 +12,6 @@ sqlalchemy
 requests
 pdfminer.six
 openpyxl
-python-dotenv
-lancedb
 huggingface_hub
 openai
 plotly

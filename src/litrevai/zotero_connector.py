@@ -59,7 +59,7 @@ class ZoteroConnector:
 
         df = pd.read_sql(sql_query, conn).set_index('libraryID')
 
-        df.loc[1, 'name'] = 'My Library'
+        df.loc[1, 'name'] = 'Personal'
 
         conn.close()
 
@@ -72,14 +72,31 @@ class ZoteroConnector:
         conn = sqlite3.connect(self.file_path)
 
         sql_query = '''
-        SELECT items.key, collections.collectionID, collections.libraryID, collections.parentCollectionID, collections.collectionName FROM items
+SELECT items.key, collections.collectionID, collections.libraryID, collections.parentCollectionID, collections.collectionName FROM items
+JOIN collectionItems ON items.itemID=collectionItems.itemID
+JOIN collections ON collectionItems.collectionID=collections.collectionID;
+        '''
+
+        sql_query = '''
+        SELECT collections.collectionID, collections.libraryID, collections.parentCollectionID, collections.collectionName FROM items
         JOIN collectionItems ON items.itemID=collectionItems.itemID
         JOIN collections ON collectionItems.collectionID=collections.collectionID;
-        '''
+                '''
 
         collections = pd.read_sql(sql_query, conn).set_index('collectionID')
 
         conn.close()
+
+        def get_path(row):
+            parent = row['parentCollectionID']
+            name = row['collectionName']
+            if pd.isna(parent):
+                return name
+            else:
+                parent_row = collections.loc[int(parent)]
+                return get_path(parent_row) + '/' + name
+
+        #collections['path'] = collections.apply(get_path, axis=1)
 
         return collections
 
@@ -123,6 +140,7 @@ class ZoteroConnector:
         SELECT items.key, itemTypes.typeName, items.libraryID FROM items
         LEFT JOIN itemTypes ON items.itemTypeID=itemTypes.itemTypeID
         '''
+
 
         items = pd.read_sql(sql_query, conn).set_index('key')
 
@@ -168,8 +186,10 @@ if __name__ == '__main__':
 
     zotero = ZoteroConnector()
 
-    df = zotero.df
+    #df = zotero.df
 
-    item = df.sample(20)
+    #item = df.sample(20)
 
-    print(item)
+    collections = zotero.collections
+
+    print(collections)

@@ -1,5 +1,6 @@
 import re
 import importlib.resources
+from typing import List, Mapping
 
 package_name = __package__
 
@@ -55,6 +56,9 @@ class Prompt:
 
 @register_prompt
 class YesNoPrompt(Prompt):
+    """
+    Prompt that is to be answered by yes or no. Can be used as a filter. For finer-detailed answers use LikertPrompt.
+    """
     name: str = 'yes_no'
 
     def __init__(self, question: str, **params):
@@ -72,35 +76,57 @@ class YesNoPrompt(Prompt):
 
 @register_prompt
 class ListPrompt(Prompt):
+    """
+    Prompt that returns a list of items.
+    """
     name: str = 'list'
     n: int = 5
 
-    def __init__(self, question: str, **params):
-        if 'n' in params:
-            self.n = params.get('n')
+    def __init__(self, question: str, n=5, **params):
+        """
+
+        :param question: Question asking for the list items. Example::
+            "What learning objectives related to programming are mentioned in the context?"
+        :param n: (Maximum) number of bullet point items asked for.
+        :param params: See Prompt.
+        """
+
+        self.n = n
+        params['n'] = n
 
         super().__init__(question, **params)
         self.system_prompt = self.system_prompt.format(self.n)
 
-    def parse_value(self, answer):
+    def parse_value(self, answer) -> List[str]:
         return re.findall(r'^[-*+] (.+)$', answer, flags=re.MULTILINE)
 
 
 @register_prompt
 class OptionsPrompt(Prompt):
+    """
+    Prompt that is used to choose from a set of options. Useful for classification
+
+    """
     name: str = 'options'
     options: dict
 
-    def __init__(self, question: str, **params):
-        super().__init__(question, **params)
+    def __init__(self, question: str, options: Mapping[str, str], **params):
+        """
 
-        if 'options' in params:
-            self.options: dict = params.get('options')
+        :param question:
+        :param options: Dict with the options to choose from as keys and a description of each option as the value.
+        :param params:
+        """
+
+        self.options = options
+        params['options'] = options
+        super().__init__(question, **params)
 
         options_string = '\n'.join([f'- **{key}**: {value}' for key, value in self.options.items()])
         self.system_prompt = self.system_prompt.format(options_string)
 
-    def parse_value(self, answer):
+    def parse_value(self, answer) -> str:
+
         for option in self.options:
             if option.lower() in answer.lower():
                 return option
@@ -108,6 +134,9 @@ class OptionsPrompt(Prompt):
 
 @register_prompt
 class LikertPrompt(Prompt):
+    """
+    A Liker-like Question that allows for different levels of agreement.
+    """
     name: str = 'likert'
     scale: dict = {
         -3: "Strongly Disagree",
@@ -155,6 +184,9 @@ class LikertPrompt(Prompt):
 
 @register_prompt
 class OpenPrompt(Prompt):
+    """
+    Open Question that can be answered in a few sentences.
+    """
     name: str = 'open'
     n_sentences: int = 3
 

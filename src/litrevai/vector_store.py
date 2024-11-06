@@ -1,3 +1,4 @@
+from typing import Tuple
 
 import lancedb
 import pandas as pd
@@ -5,7 +6,7 @@ from lancedb.embeddings import get_registry
 from lancedb.pydantic import LanceModel, Vector, List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from .database import *
-from .util import strip_references, resolve_items
+from .util import strip_references, _resolve_item_keys
 import torch
 
 
@@ -31,9 +32,12 @@ class Document(LanceModel):
 
 class VectorStore:
 
-    def __init__(self, uri="./.lancedb", llm=None, chunk_size=1024, chunk_overlap=256, context_size=6):
+    """
+    Manages access to the vector store and provides methods for RAG and similarity search.
+    """
 
-        self.context_size = context_size
+    def __init__(self, uri="./.lancedb", llm=None, chunk_size=1024, chunk_overlap=256):
+
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.vs = lancedb.connect(uri)
@@ -116,9 +120,31 @@ class VectorStore:
 
         return context
 
-    def rag(self, prompt, keys: None | str = None, max_new_tokens: int = 2048,
-            temperature: float = 0.6, top_p: float = 0.9,
-            sort_by_position=True, n=20, additional_context: dict | None = None):
+    def rag(
+            self,
+            prompt,
+            keys: None | str | List[str] = None,
+            max_new_tokens: int = 2048,
+            temperature: float = 0.6,
+            top_p: float = 0.9,
+            sort_by_position=True,
+            n=20,
+            additional_context: dict | None = None
+    ) -> Tuple[str, str]:
+
+        """
+        Performs Retrieval Augmented Generation using the given prompt on one or more items.
+
+        :param prompt: Prompt which contains the question
+        :param keys:
+        :param max_new_tokens:
+        :param temperature:
+        :param top_p:
+        :param sort_by_position: If true, sorts retrieved context by its position in the text rather than by its similarity.
+        :param n: Number of context chunks to be retrieved. High values may lead to exceeded context size.
+        :param additional_context: Dict containing addition metadata that is added to the context.
+        :return: Tuple with the answer and the retrieved context.
+        """
 
         context = self.get_context(search_phrase=prompt.question, keys=keys, n=n, sort_by_position=sort_by_position)
 

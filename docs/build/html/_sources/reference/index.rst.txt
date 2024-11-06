@@ -9,5 +9,6 @@ Reference
 
    literature_review
    project
+   prompt
    query
    zotero
