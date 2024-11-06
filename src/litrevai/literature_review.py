@@ -76,11 +76,24 @@ class LiteratureReview:
     def get_collection(self, collection_id):
         with self.Session() as session:
             collection = session.get(Collection, collection_id)
-            items = collection.items
+            items = collection.get_items()
 
         df = BibliographyItem.to_df(items)
         return df
 
+
+    def remove_items(self, items):
+        item_keys = _resolve_item_keys(items)
+        with self.Session() as session:
+            items = session.query(BibliographyItem).where(BibliographyItem.key.in_(item_keys)).all()
+            for item in tqdm(items, desc='Deleting items', total=len(items)):
+                session.delete(item)
+            session.commit()
+
+    def get_collection_by_path(self, path: str):
+        with self.Session() as session:
+            collection = session.query(Collection).where(Collection.path == path).first()
+        return collection
 
     def to_bibtex(self, items, file_path=None) -> str:
         """
@@ -224,6 +237,26 @@ class LiteratureReview:
         self.llm = llm
         self.vs.llm = llm
 
+    def import_item(self, key, text, bibtex):
+        item = self.db.add_item_by_bibtex(key=key, bibtex=bibtex, text=text)
+        self.vs.add_text(key, text)
+
+        return item
+
+    def import_csv(self, file_path):
+        """
+        Imports BibliogprahyItems from a CSV-file. Expects `key` and `text` to be in column names.
+
+        :param file_path:
+        :return:
+        """
+        df = pd.read_csv(file_path).set_index('key')
+
+        for key, row in df.iterrows():
+            text = row['text']
+            bibtex = row.to_dict()
+            self.import_item(key=key, text=text, bibtex=bibtex)
+
     def import_txt(self, item_key: str, file_path: str, bibtex: dict):
 
         with self.Session() as session:
@@ -233,9 +266,9 @@ class LiteratureReview:
             with open(file_path, 'r') as f:
                 text = f.read()
 
-            item = self.db.add_item_by_bibtex(bibtex, text)
+            self.import_item(item_key, bibtex, text)
 
-            self.vs.add_text(item_key, text)
+
 
 
     def import_bibtex(self, path_to_bibtex: str, project: int | Project = None):
@@ -260,10 +293,13 @@ class LiteratureReview:
             filepath = os.path.join(os.path.dirname(path_to_bibtex), filepath)
 
             text = pdf2text(filepath)
-            item = self.db.add_item_by_bibtex(entry, text)
+
+            key = entry.get('ID')
+
+            item = self.import_item(key, text, entry)
 
             if project_id:
-                self.db.add_item_to_project(item.key, project_id)
+                self.db.add_item_to_project(key, project_id)
 
     @property
     def libraries(self):

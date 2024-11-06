@@ -78,25 +78,28 @@ JOIN collections ON collectionItems.collectionID=collections.collectionID;
         '''
 
         sql_query = '''
-        SELECT collections.collectionID, collections.libraryID, collections.parentCollectionID, collections.collectionName FROM items
-        JOIN collectionItems ON items.itemID=collectionItems.itemID
-        JOIN collections ON collectionItems.collectionID=collections.collectionID;
-                '''
+        SELECT collections.collectionID, collections.libraryID, collections.parentCollectionID, collections.collectionName FROM collections
+        '''
 
         collections = pd.read_sql(sql_query, conn).set_index('collectionID')
 
         conn.close()
 
+        libraries = self.libraries
+
         def get_path(row):
             parent = row['parentCollectionID']
             name = row['collectionName']
+            library_id = row['libraryID']
             if pd.isna(parent):
-                return name
+                library = libraries.loc[int(library_id)]
+                library_name = library['name']
+                return os.path.join(library_name, name)
             else:
                 parent_row = collections.loc[int(parent)]
-                return get_path(parent_row) + '/' + name
+                return os.path.join(get_path(parent_row), name)
 
-        #collections['path'] = collections.apply(get_path, axis=1)
+        collections['collectionPath'] = collections.apply(get_path, axis=1)
 
         return collections
 
@@ -107,9 +110,7 @@ JOIN collections ON collectionItems.collectionID=collections.collectionID;
         conn = sqlite3.connect(self.file_path)
 
         sql_query = '''
-                SELECT creators.creatorID, items.key, creators.firstName, creators.lastName, itemCreators.orderIndex FROM itemCreators
-                LEFT JOIN creators ON itemCreators.creatorID=creators.creatorID
-                LEFT JOIN items ON itemCreators.itemID=items.itemID;
+                SELECT creators.creatorID, creators.firstName, creators.lastName FROM creators
                 '''
 
         authors = pd.read_sql(sql_query, conn).set_index('creatorID')
@@ -137,8 +138,8 @@ JOIN collections ON collectionItems.collectionID=collections.collectionID;
         fields = fields.drop(np.nan, axis=1)
 
         sql_query = '''
-        SELECT items.key, itemTypes.typeName, items.libraryID FROM items
-        LEFT JOIN itemTypes ON items.itemTypeID=itemTypes.itemTypeID
+SELECT items.key, itemTypes.typeName, items.libraryID FROM items
+LEFT JOIN itemTypes ON items.itemTypeID=itemTypes.itemTypeID
         '''
 
 
@@ -177,6 +178,32 @@ JOIN collections ON collectionItems.collectionID=collections.collectionID;
 
         items['year'] = items['date'].apply(extract_year)
 
+        sql_query = '''
+        SELECT items.key, collectionItems.collectionID, collectionItems.itemID FROM collectionItems
+        LEFT JOIN items on items.itemID = collectionItems.itemID
+        '''
+
+        collections_items = pd.read_sql(sql_query, conn).groupby('key')['collectionID'].apply(lambda s: s.to_list())
+
+        collections_items.name = 'collectionIDs'
+
+        items = items.join(collections_items)
+
+        sql_query = '''
+                SELECT items.key, itemCreators.creatorID, itemCreators.itemID, itemCreators.orderIndex FROM itemCreators
+                LEFT JOIN items on items.itemID = itemCreators.itemID
+                '''
+
+
+        creators_items = pd.read_sql(sql_query, conn).groupby('key').apply(
+            lambda g: g.sort_values('orderIndex')['creatorID'].to_list(),
+            include_groups=False
+        )
+
+        creators_items.name = 'creatorIDs'
+
+        items = items.join(creators_items)
+
         conn.close()
 
         return items
@@ -189,6 +216,13 @@ if __name__ == '__main__':
     #df = zotero.df
 
     #item = df.sample(20)
+
+    print(zotero.authors)
+
+    print(zotero.items.columns)
+
+    print(zotero.items)
+
 
     collections = zotero.collections
 

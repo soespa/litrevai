@@ -6,6 +6,7 @@ from .base import BaseLLM
 class HuggingfaceModel(BaseLLM):
 
     def __init__(self, model=None, base_url=None, api_key=None):
+
         self.model = model
 
         self.client = InferenceClient(

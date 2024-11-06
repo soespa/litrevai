@@ -19,8 +19,6 @@ class Database:
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-
-
     def get_or_create_project(self, name):
         with self.Session(expire_on_commit=False) as session:
             project = session.query(ProjectModel).where(ProjectModel.name == name).first()
@@ -120,7 +118,7 @@ class Database:
             project = session.get(ProjectModel, project_id)
         return project
 
-    def add_item_by_bibtex(self, bibtex: dict, text: str = None):
+    def add_item_by_bibtex(self, key: str, bibtex: dict, text: str = None):
         """
         Add a parsed BibTeX entry to the bibliography_items table.
 
@@ -131,7 +129,6 @@ class Database:
 
         with self.Session() as session:
 
-            key = bibtex.get('ID')
             item = session.get(BibliographyItem, key)
 
             if not item:
@@ -371,7 +368,8 @@ class Database:
         return df
 
 
-    def import_zotero(self, zotero: ZoteroConnector, filter_type_names=None, filter_libraries=None, like= None, prog_callback=None):
+
+    def import_zotero(self, zotero: ZoteroConnector, filter_type_names=None, filter_libraries=None, like = None, prog_callback=None, debug=False):
         """
 
         :param zotero:
@@ -441,13 +439,24 @@ class Database:
                 i += 1
 
                 if session.get(BibliographyItem, key):
-                    print(f'Item with key {key} already in database')
+                    if debug:
+                        print(f'Item with key {key} already in database')
                     continue
 
                 path = row['path']
 
                 try:
-                    text = pdf2text(path)
+
+                    ft_cache = os.path.join(
+                        os.path.dirname(path),
+                        '.zotero-ft-cache'
+                    )
+
+                    if os.path.exists(ft_cache):
+                        with open(ft_cache, 'r') as f:
+                            text = f.read()
+                    else:
+                        text = pdf2text(path)
                 except Exception as e:
                     print(e)
                     continue
@@ -472,23 +481,23 @@ class Database:
 
                 session.add(bib_item)
 
-                rel_authors = authors[authors['key'] == key]
+                creator_ids = row['creatorIDs']
 
-                for creator_id, row in rel_authors.iterrows():
+                if isinstance(creator_ids, list):
+                    for creator_id in creator_ids:
+                        author = session.get(Author, creator_id)
 
-                    author = session.get(Author, creator_id)
+                        if author not in bib_item.authors:
+                            bib_item.authors.append(author)
 
-                    if author not in bib_item.authors:
-                        bib_item.authors.append(author)
+                collection_ids = row['collectionIDs']
 
-                rel_collections = collections[collections['key'] == key]
+                if isinstance(collection_ids, list):
+                    for collection_id in collection_ids:
+                        collection = session.get(Collection, collection_id)
 
-                for collection_id, row in rel_collections.iterrows():
-
-                    collection = session.get(Collection, collection_id)
-
-                    if bib_item not in collection.items:
-                        collection.items.append(bib_item)
+                        if bib_item not in collection.items:
+                            collection.items.append(bib_item)
 
                 session.commit()
 
@@ -510,7 +519,7 @@ class Database:
                 if doi in articles.keys():
                     print(doi)
                     text = articles[doi]
-                    item = self.add_item_by_bibtex(row.to_dict(), text=text)
+                    item = self.add_item_by_bibtex(key=doi, bibtex=row.to_dict(), text=text)
                     if project_id:
                         self.add_item_to_project(item.key, project_id)
         except Exception as e:

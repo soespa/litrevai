@@ -32,7 +32,7 @@ def test_create_project(db):
 
     project = lr.projects.get(project_name)
 
-    lr.import_bibtex('./example_data/zotero_example.bib', project)
+    lr.import_bibtex('./tests/data/example.bib', project)
 
     items = project.items
 
@@ -59,4 +59,4 @@ def test_import_zotero(db):
 
     lr = LiteratureReview(db)
 
-    lr.import_zotero(filter_type_names=['journalArticle', 'conferencePaper'], filter_libraries=["My library"])
+    lr.import_zotero(filter_type_names=['journalArticle', 'conferencePaper'], filter_libraries=["Personal"])

@@ -1,4 +1,5 @@
 import json
+import os.path
 import re
 from enum import Enum
 from typing import Literal
@@ -78,7 +79,7 @@ class BibliographyItem(Base):
     key = mapped_column(String, nullable=False, primary_key=True)
     zotero_key = mapped_column(String, nullable=True, unique=True)
     typeName = mapped_column(String, nullable=True)
-    DOI = mapped_column(String, nullable=True, unique=True)
+    DOI = mapped_column(String, nullable=True)
     ISBN = mapped_column(String, nullable=True)
     title = mapped_column(String, nullable=True)
     date = mapped_column(String, nullable=True)
@@ -265,10 +266,19 @@ class Collection(Base):
     library = relationship('Library', back_populates='collections')
 
     def __repr__(self):
-        return f"<Response(id={self.id}, key='{self.item}', query_id={self.query})>"
+        return f"<Response(id={self.id}, name='{self.name}')>"
 
     def get_items(self):
         items = self.items
-        for child in items:
-            items.extend(child.get_items)
+
+        if self.children is not None:
+            for child in self.children:
+                items.extend(child.get_items())
         return items
+
+    @property
+    def path(self):
+        if self.parent_id is None:
+            return os.path.join(self.library.name, self.name)
+        else:
+            return os.path.join(self.parent.path, self.name)

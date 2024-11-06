@@ -101,10 +101,8 @@ class Query:
 
         responses = self.project.responses
 
-        # Initial texts and labels
         texts = responses.to_list()
 
-        # Predefined list of labels
         predefined_labels = ["Positive", "Negative", "Neutral"]
 
         # Variables to keep track of the current text index and labels
