@@ -8,3 +8,4 @@ tests/db/*
 *zotero.sqlite
 /example_data/
 *__pycache__
+dist/

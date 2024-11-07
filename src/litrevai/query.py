@@ -221,10 +221,9 @@ class Query:
         if isinstance(responses.iloc[0], list):
             responses = responses.explode()
             responses.index = [responses.index, responses.groupby(level=0).cumcount()]
+            responses = responses[~responses.isna()]
 
         responses.name = 'response'
-
-        responses = responses[~responses.isna()]
 
         topic_model = TopicModel(
             question=self.question,

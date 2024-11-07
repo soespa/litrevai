@@ -16,7 +16,7 @@ from .llm import BaseLLM
 
 class TopicModel:
     """
-    Wrapper for BERTopic.
+    Wrapper class for BERTopic.
 
     """
 

@@ -207,23 +207,3 @@ LEFT JOIN itemTypes ON items.itemTypeID=itemTypes.itemTypeID
         conn.close()
 
         return items
-
-
-if __name__ == '__main__':
-
-    zotero = ZoteroConnector()
-
-    #df = zotero.df
-
-    #item = df.sample(20)
-
-    print(zotero.authors)
-
-    print(zotero.items.columns)
-
-    print(zotero.items)
-
-
-    collections = zotero.collections
-
-    print(collections)

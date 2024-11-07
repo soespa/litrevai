@@ -20,7 +20,7 @@ else:
 model = get_registry().get("sentence-transformers").create(name="BAAI/bge-large-en-v1.5", device=device)
 
 
-# TODO: Add re-ranker (https://huggingface.co/BAAI/bge-reranker-v2-m3)
+
 
 
 class Document(LanceModel):
@@ -87,17 +87,18 @@ class VectorStore:
 
         return True
 
-
     def get_context(self, search_phrase, keys: None | List[str] = None, n=10, sort_by_position=True) -> pd.DataFrame:
         """
         Retrieves the context that fits the query using similarity search.
 
-        :param query:
+        :param search_phrase:
         :param keys: If None, search within all items. If a list of strings is passed, only items with the keys are considered.
         :param n: Number of chunks to return
         :param sort_by_position: If True, sort chunks by they order they appear in the text
         :return:
         """
+
+        # TODO: Add re-ranker (https://huggingface.co/BAAI/bge-reranker-v2-m3)
 
         if keys is not None:
 
