@@ -218,6 +218,9 @@ class Query:
 
         responses = responses[~responses.isna()]
 
+        if len(responses) == 0:
+            raise Exception('There are no responses for that query yet.')
+
         if isinstance(responses.iloc[0], list):
             responses = responses.explode()
             responses.index = [responses.index, responses.groupby(level=0).cumcount()]

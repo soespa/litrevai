@@ -20,11 +20,6 @@ def pdf2text(path):
 
     def cleanup_text(text):
         text = re.sub(r'[^a-zA-ZÄÖÜß0-9\.:;,!?()\[\]@"\' \n\-]', '', text)
-        # text = re.sub(r'^\s+', '', text)
-        # text = re.sub(r' +', ' ', text)
-        # text = re.sub(r'([a-z])-\n([a-z])', r'\1\2', text)
-        # text = re.sub(r' ?\n+([a-z])', r' \1', text)
-        # text = re.sub(r',\s+', r', ', text)
         return text
 
     text = cleanup_text(text)

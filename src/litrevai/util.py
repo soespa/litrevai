@@ -19,6 +19,7 @@ def extract_year(date):
     else:
         return None
 
+
 def _resolve_item_keys(keys_or_items):
     if keys_or_items is None:
         return None
@@ -34,7 +35,6 @@ def _resolve_item_keys(keys_or_items):
 
 
 def to_df(objects):
-
     records = []
 
     for o in objects:
@@ -48,7 +48,6 @@ def to_df(objects):
 
 
 def parse_bibtex(path_to_bibtex):
-
     with open(path_to_bibtex, 'r') as f:
         s = f.read()
 
@@ -59,46 +58,12 @@ def parse_bibtex(path_to_bibtex):
     return entries
 
 
-
-
 def get_authors_from_author_field(author_field):
     pass
 
 
-def to_bibtex(items, filename: str = 'bibliography_export.bib'):
-
-    # Initialize a list to store BibTeX entries
-    bibtex_entries = []
-
-    # Loop through each item and convert to BibTeX entry format
-    for item in items:
-        # Prepare authors if available
-        authors = " and ".join([f"{author.first_name} {author.last_name}" for author in item.authors])
-
-        # Construct a BibTeX entry dictionary
-        entry = {
-            'ID': item.key,
-            'ENTRYTYPE': item.typeName or 'article',  # Default to 'article' if type is missing
-            'title': item.title,
-            'author': authors,
-            'year': str(item.year) if item.year else '',
-            'journal': item.journal,
-            'publisher': item.publisher,
-            'doi': item.DOI,
-            'isbn': item.ISBN,
-            'series': item.series,
-            'keywords': item.keywords,
-            'note': item.note,
-            'abstract': item.abstract,
-            'file': item.path,
-            'date': item.date,
-        }
-
-
 
 def timer_func(func):
-    # This function shows the execution time of
-    # the function object passed
     def wrap_func(*args, **kwargs):
         t1 = time()
         result = func(*args, **kwargs)

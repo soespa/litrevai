@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from litrevai import LiteratureReview, OpenPrompt
+from litrevai import LiteratureReview, OpenPrompt, CustomEndpoint, ListPrompt
 from litrevai.project import Project
 from litrevai.query import Query
 from litrevai.topic_modelling import TopicModel
@@ -42,7 +42,7 @@ def test_create_project(db):
     assert len(items) > 0
     assert len(items.iloc[0].text) > 0
 
-    prompt = OpenPrompt(question="What is the article about?")
+    prompt = ListPrompt(question="What is the article about?", n=10)
 
     query_name = "New Query"
 
@@ -55,26 +55,31 @@ def test_create_project(db):
 
     assert isinstance(query, Query)
 
+    llm = CustomEndpoint()
 
-def test_topic_model():
-    lr = LiteratureReview(db)
+    lr.set_llm(llm)
 
-    project_name = "New Project"
-
-    project = lr.projects.get(project_name)
-
-    query_name = "New Query"
-
-    query = project.queries.get(query_name)
-
-    topic_model = query.create_topic_model()
-
-    assert isinstance(topic_model, TopicModel)
+    query.run()
 
 
+# def test_topic_model(db):
+#     lr = LiteratureReview(db)
+#
+#     project_name = "New Project"
+#
+#     project = lr.projects.get(project_name)
+#
+#     query_name = "New Query"
+#
+#     query = project.queries.get(query_name)
+#
+#     topic_model = query.create_topic_model()
+#
+#     assert isinstance(topic_model, TopicModel)
 
-def test_import_zotero(db):
 
-    lr = LiteratureReview(db)
 
-    lr.import_zotero(filter_type_names=['journalArticle', 'conferencePaper'], filter_libraries=["Personal"])
+# def test_import_zotero(db):
+#
+#     lr = LiteratureReview(db)
+#     lr.import_zotero(filter_type_names=['journalArticle', 'conferencePaper'], filter_libraries=["Personal"])

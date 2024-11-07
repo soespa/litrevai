@@ -33,18 +33,36 @@
 
           <div class="body" role="main">
             
-  <section id="prompt">
-<h1>Prompt<a class="headerlink" href="#prompt" title="Link to this heading">¶</a></h1>
-<dl class="py class" id="module-litrevai.prompt">
+  <section id="module-litrevai.prompt">
+<span id="prompt"></span><h1>Prompt<a class="headerlink" href="#module-litrevai.prompt" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="litrevai.prompt.LikertPrompt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.prompt.</span></span><span class="sig-name descname"><span class="pre">LikertPrompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.prompt.LikertPrompt" title="Link to this definition">¶</a></dt>
+<dd><p>A Liker-like Question that allows for different levels of agreement.</p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="litrevai.prompt.ListPrompt">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.prompt.</span></span><span class="sig-name descname"><span class="pre">ListPrompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.prompt.ListPrompt" title="Link to this definition">¶</a></dt>
 <dd><p>Prompt that returns a list of items.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="litrevai.prompt.OpenPrompt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.prompt.</span></span><span class="sig-name descname"><span class="pre">OpenPrompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.prompt.OpenPrompt" title="Link to this definition">¶</a></dt>
+<dd><p>Open Question that can be answered in a few sentences.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="litrevai.prompt.OptionsPrompt">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.prompt.</span></span><span class="sig-name descname"><span class="pre">OptionsPrompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.prompt.OptionsPrompt" title="Link to this definition">¶</a></dt>
+<dd><p>Prompt that is used to choose from a set of options. Useful for classification</p>
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="litrevai.prompt.YesNoPrompt">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">litrevai.prompt.</span></span><span class="sig-name descname"><span class="pre">YesNoPrompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.prompt.YesNoPrompt" title="Link to this definition">¶</a></dt>
-<dd><p>Prompt that is to be answered by yes or no. Can be used as a filter.</p>
+<dd><p>Prompt that is to be answered by yes or no. Can be used as a filter. For finer-detailed answers use LikertPrompt.</p>
 </dd></dl>
 
 </section>

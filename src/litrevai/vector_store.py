@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 
 import lancedb
 import pandas as pd
@@ -10,6 +10,11 @@ from .util import strip_references, _resolve_item_keys
 import torch
 
 
+
+if TYPE_CHECKING:
+    from .literature_review import LiteratureReview
+
+
 if torch.backends.mps.is_available():
     device = 'mps'
 elif torch.cuda.is_available():
@@ -18,9 +23,6 @@ else:
     device = 'cpu'
 
 model = get_registry().get("sentence-transformers").create(name="BAAI/bge-large-en-v1.5", device=device)
-
-
-
 
 
 class Document(LanceModel):
@@ -36,8 +38,10 @@ class VectorStore:
     Manages access to the vector store and provides methods for RAG and similarity search.
     """
 
-    def __init__(self, uri="./.lancedb", llm=None, chunk_size=1024, chunk_overlap=256):
+    def __init__(self, lr: 'LiteratureReview', uri="./.lancedb", chunk_size=1024, chunk_overlap=256):
 
+
+        self.lr = lr
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.vs = lancedb.connect(uri)
@@ -49,7 +53,11 @@ class VectorStore:
             chunk_overlap=self.chunk_overlap,
             length_function=len)
 
-        self.llm = llm
+
+
+    @property
+    def llm(self):
+        return self.lr.llm
 
     def delete_all(self):
         self.documents = self.vs.create_table("documents", schema=Document.to_arrow_schema(), mode='overwrite')

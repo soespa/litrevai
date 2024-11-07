@@ -10,7 +10,6 @@ from .llm import BaseLLM
 from .pdf2text import pdf2text
 from .query import Query
 from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes
-from .topic_modelling import TopicModel
 from .util import parse_bibtex, _resolve_item_keys
 from .project import Project
 from .database import Database
@@ -36,12 +35,11 @@ class LiteratureReview:
             os.mkdir(path)
 
         self.db = Database(f'sqlite:///{path}/bibliography.sqlite')
-        self.vs = VectorStore(uri=f'{path}/lancedb', llm=llm)
+        self.vs = VectorStore(self, uri=f'{path}/lancedb')
         self.llm = llm
         self.rag = self.vs.rag
 
         self.Session = self.db.Session
-
 
     def get_item(self, item_key):
         """
@@ -53,12 +51,9 @@ class LiteratureReview:
             item = session.get(BibliographyItem, item_key)
         return item
 
-
-
     def get_project_by_id(self, project_id) -> Project:
         project = Project(self, project_id)
         return project
-
 
     def get_query_by_id(self, query_id) -> Query:
         query = Query(self, query_id)
@@ -68,19 +63,21 @@ class LiteratureReview:
     def collections(self):
         with self.Session() as session:
             collections = session.query(Collection).all()
-
-        d = {collection.id: collection.name for collection in collections}
+            d = {collection.id: f'{collection.name} ({collection.path})' for collection in collections}
         return d
 
-
     def get_collection(self, collection_id):
+        """
+        Gets all items in a collection
+        :param collection_id:
+        :return:
+        """
         with self.Session() as session:
             collection = session.get(Collection, collection_id)
             items = collection.get_items()
 
         df = BibliographyItem.to_df(items)
         return df
-
 
     def remove_items(self, items):
         item_keys = _resolve_item_keys(items)
@@ -90,16 +87,28 @@ class LiteratureReview:
                 session.delete(item)
             session.commit()
 
-    def get_collection_by_path(self, path: str):
+    def get_collection_by_path(self, path: str) -> pd.DataFrame:
+        """
+        Returns all items within a collection by a given path.
+        :param path: Library/Path/To/Collection
+        :return:
+        """
         with self.Session() as session:
             collection = session.query(Collection).where(Collection.path == path).first()
-        return collection
 
-    def to_bibtex(self, items, file_path=None) -> str:
+            if collection is not None:
+                items = collection.get_items()
+                df = BibliographyItem.to_df(items)
+                return df
+            else:
+                raise Exception(f'There is no collection with the path {path}')
+
+    def to_bibtex(self, items, file_path: str | None = None) -> str:
         """
         Exports the items to a bibtex string.
-        :param items:
-        :param file_path:
+
+        :param items: Items to be included in the Bibtex file.
+        :param file_path: Optional: File path to store the bibtex.
         :return: Bibtex string
         """
         keys = _resolve_item_keys(items)
@@ -109,7 +118,6 @@ class LiteratureReview:
             library = bibtexparser.Library()
 
             for item in items:
-
                 authors = " and ".join([
                     f"{author.firstName} {author.lastName}" for author in item.authors
                 ])
@@ -174,7 +182,6 @@ class LiteratureReview:
             for project in projects
         }
 
-
     def create_project(self, name: str, exists_ok=True) -> Project:
         """
         Creates a Project with the given (unique) name.
@@ -219,7 +226,6 @@ class LiteratureReview:
             else:
                 raise Exception('Project with name {name} does not exists.')
 
-
     def _resolve_project_id(self, project: Project | int | None):
         if project is None:
             return None
@@ -230,12 +236,11 @@ class LiteratureReview:
         elif isinstance(project, str):
             return self.projects.get(project)
         else:
-            raise TypeError(f'Parameter project must be of type Project, int, str or None but was of type {type(project)}')
-
+            raise TypeError(
+                f'Parameter project must be of type Project, int, str or None but was of type {type(project)}')
 
     def set_llm(self, llm: BaseLLM):
         self.llm = llm
-        self.vs.llm = llm
 
     def import_item(self, key, text, bibtex):
         item = self.db.add_item_by_bibtex(key=key, bibtex=bibtex, text=text)
@@ -258,18 +263,11 @@ class LiteratureReview:
             self.import_item(key=key, text=text, bibtex=bibtex)
 
     def import_txt(self, item_key: str, file_path: str, bibtex: dict):
-
         with self.Session() as session:
-
-            bibtex['ID'] = item_key
-
             with open(file_path, 'r') as f:
                 text = f.read()
 
-            self.import_item(item_key, bibtex, text)
-
-
-
+            self.import_item(key=item_key, text=text, bibtex=bibtex)
 
     def import_bibtex(self, path_to_bibtex: str, project: int | Project = None):
         """
@@ -335,21 +333,16 @@ class LiteratureReview:
             filter_type_names: List[str] | None = ['journalArticle', 'conferencePaper'],
             filter_libraries: List[str] | None = None,
             like: str = None
-        ):
+    ) -> None:
         """
         Connects to a local instance of Zotero and add items that fit to the filter criteria.
 
         :param zotero_path: Directory containing Zotero Files
-        :param filter_type_names: One of
-            -
-        :param filter_libraries:
-        :return:
+        :param filter_type_names: A list of entry types to include of 'journalArticle', 'conferencePaper', 'book' etc.
+        :param filter_libraries: A list of libraries / groups to include. The personal library is called 'Personal'
         """
 
-        zotero = ZoteroConnector(zotero_path=zotero_path)
-
-        self.db.import_zotero(zotero, filter_type_names, filter_libraries, like)
-
+        self.db.import_zotero(zotero_path, filter_type_names, filter_libraries, like)
         self.update_vector_store()
 
     def run_query(self, query_id, include_keys=None, save_responses=True, debug=False):
@@ -403,14 +396,13 @@ class LiteratureReview:
                     session.add(response)
                     session.commit()
 
-
     def test_query(self, query_id):
         with self.db.Session() as session:
             query = session.get(QueryModel, query_id)
             project = query.project
 
             items = project.items
-            item = items[randint(0, len(items)-1)]
+            item = items[randint(0, len(items) - 1)]
             prompt = query.prompt
 
             answer, context = self.vs.rag(
@@ -427,7 +419,6 @@ class LiteratureReview:
 
             print(response)
 
-
     def test_project(self, project_id):
         """
         Tests all queries from the project.
@@ -442,10 +433,9 @@ class LiteratureReview:
             items = project.items
             queries = project.queries
 
-            item = items[randint(0, len(items)-1)]
+            item = items[randint(0, len(items) - 1)]
 
             for query in tqdm(queries, desc='Retrieving Responses', total=len(queries)):
-
                 prompt = query.prompt
 
                 answer, context = self.vs.rag(
@@ -461,9 +451,6 @@ class LiteratureReview:
                 )
 
                 print(response)
-
-
-
 
     def run_project(self, project_id, include_keys: List[str] | None = None):
         """
@@ -487,7 +474,7 @@ class LiteratureReview:
             for item in tqdm(items, total=len(items), desc='Retrieving responses for project'):
                 for query in queries:
 
-                    response = session.query(Response).where(Response.query==query, Response.item == item).first()
+                    response = session.query(Response).where(Response.query == query, Response.item == item).first()
 
                     if response:
                         continue
@@ -519,7 +506,6 @@ class LiteratureReview:
 
 
 class LibraryController:
-
     _library_id: int
 
     def __init__(self, library_id: int, lr: LiteratureReview):
@@ -536,13 +522,11 @@ class LibraryController:
 
 
 class CollectionController:
-
     _collection_id: int
 
     def __init__(self, collection_id: int, lr: LiteratureReview):
         self.lr = lr
         self._collection_id = collection_id
-
 
     @property
     def collection_id(self):

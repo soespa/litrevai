@@ -64,14 +64,12 @@ class Database:
 
             session.commit()
 
-
-
     def get_responses_for_project(self, project_id):
         with self.Session() as session:
             project = session.get(ProjectModel, project_id)
             queries = project.queries
 
-            #items = project.items
+            # items = project.items
 
             data = []
 
@@ -83,8 +81,6 @@ class Database:
                     d[response.item_key] = response.value
 
                 data.append(pd.Series(d, name=query.name))
-
-
 
             df = pd.concat(data, axis=1)
 
@@ -104,7 +100,6 @@ class Database:
         s = pd.Series(d, name=query.name)
 
         return s
-
 
     def clear_responses(self, session: Session, query_id: int):
         query = session.get(QueryModel, query_id)
@@ -209,7 +204,6 @@ class Database:
             if item in project.items:
                 project.items.remove(item)
 
-
     def remove_item_from_project(self, item_key: str, project_id: str):
         with self.Session() as session:
             project = session.get(ProjectModel, project_id)
@@ -241,7 +235,6 @@ class Database:
         for item in tqdm(items_to_add, total=len(items_to_add), desc='Adding items to project'):
             if item not in project.items:
                 project.items.append(item)
-
 
     def create_query(self, project_id: int, name: str, prompt: Prompt):
         with self.Session(expire_on_commit=False) as session:
@@ -320,7 +313,6 @@ class Database:
             query = session.get(Library, library_id)
         return query
 
-
     @property
     def items(self):
         with self.Session() as session:
@@ -367,9 +359,15 @@ class Database:
 
         return df
 
-
-
-    def import_zotero(self, zotero: ZoteroConnector, filter_type_names=None, filter_libraries=None, like = None, prog_callback=None, debug=False):
+    def import_zotero(
+            self,
+            zotero_path: str,
+            filter_type_names=None,
+            filter_libraries=None,
+            like=None,
+            prog_callback=None,
+            debug=False
+    ):
         """
 
         :param zotero:
@@ -377,6 +375,8 @@ class Database:
         :param filter_libraries: List of groups to be included. If None, include all. For personal library use "Personal".
         :return:
         """
+
+        zotero = ZoteroConnector(zotero_path=zotero_path)
 
         with self.Session(expire_on_commit=False) as session:
 
@@ -506,6 +506,10 @@ class Database:
             base_path: str,
             project_id: int | None = None
     ):
+        """
+        Import individual items from an ACM Binder.
+
+        """
 
         try:
             articles, df = load_binder(base_path)
@@ -524,4 +528,3 @@ class Database:
                         self.add_item_to_project(item.key, project_id)
         except Exception as e:
             print(e)
-

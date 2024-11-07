@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "litrevai"
 dynamic = ["version"]
-description = ''
+description = 'LitRevAI (Literature Review AI) is a Python package designed to automate systematic literature reviews using natural language processing (NLP) techniques.'
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -43,9 +43,9 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/unknown/litrevai#readme"
-Issues = "https://github.com/unknown/litrevai/issues"
-Source = "https://github.com/unknown/litrevai"
+Documentation = "https://github.com/soespa/litrevai#readme"
+Issues = "https://github.com/soespa/litrevai/issues"
+Source = "https://github.com/soespa/litrevai"
 
 [tool.hatch.version]
 path = "src/litrevai/__about__.py"

@@ -98,8 +98,22 @@ containing the absolute path to the corresponding PDF file.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.import_csv">
+<span class="sig-name descname"><span class="pre">import_csv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.import_csv" title="Link to this definition">¶</a></dt>
+<dd><p>Imports BibliogprahyItems from a CSV-file. Expects <cite>key</cite> and <cite>text</cite> to be in column names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file_path</strong></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="litrevai.literature_review.LiteratureReview.import_zotero">
-<span class="sig-name descname"><span class="pre">import_zotero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zotero_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['journalArticle',</span> <span class="pre">'conferencePaper']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_libraries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.import_zotero" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">import_zotero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">zotero_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['journalArticle',</span> <span class="pre">'conferencePaper']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_libraries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">like</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.literature_review.LiteratureReview.import_zotero" title="Link to this definition">¶</a></dt>
 <dd><p>Connects to a local instance of Zotero and add items that fit to the filter criteria.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -234,6 +248,7 @@ containing the absolute path to the corresponding PDF file.</p>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">LiteratureReview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="project.html">Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prompt.html">Prompt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="query.html">Query</a></li>
 <li class="toctree-l2"><a class="reference internal" href="zotero.html">Zotero Connector</a></li>
 </ul>
