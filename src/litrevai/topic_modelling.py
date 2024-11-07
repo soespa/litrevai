@@ -4,7 +4,6 @@ import plotly.express as px
 import pandas as pd
 import re
 import nltk
-from bertopic.dimensionality import BaseDimensionalityReduction
 from nltk.corpus import stopwords
 import pandas as pd
 from bertopic import BERTopic
@@ -16,13 +15,18 @@ from .llm import BaseLLM
 
 
 class TopicModel:
-    _embeddings = None
-    topic_model: BERTopic
+    """
+    Wrapper for BERTopic.
+
+    """
+
+    embeddings = None
     _items: pd.DataFrame
     df: pd.DataFrame
 
-    def __init__(self, items, responses, llm: BaseLLM | None = None, embeddings_model="BAAI/bge-large-en-v1.5", **kwargs):
+    def __init__(self, question, items, responses, llm: BaseLLM | None = None, embeddings_model="BAAI/bge-large-en-v1.5", **kwargs):
 
+        self.question = question
         self._items = items
 
         if llm:
@@ -30,28 +34,49 @@ class TopicModel:
 
         nltk.download('stopwords', quiet=True)
 
-        responses = responses[~responses.isna()]
-
-        if isinstance(responses.iloc[0], list):
-            responses = responses.explode()
-
-        responses.name = 'response'
-
-        self.responses = responses[~responses.isna()]
+        self.responses = responses
         self.embedding_model = SentenceTransformer(embeddings_model, trust_remote_code=True)
 
+        self._recalculate_embeddings()
+
         self.fit_model(**kwargs)
+
 
     @property
     def items(self):
         return self._items
 
-    def get_items_for_topic(self, topic_id):
+
+    def _repr_markdown_(self):
+        md = ''
+
+        for i, topic in self.topics.iterrows():
+
+            n = topic['count']
+
+            md += f'**{topic.label}** (n={n})\n\n'
+            md += f'**Keywords:** {", ".join(topic.keywords)}\n\n'
+            md += f'**Examples:**\n\n'
+            for example in topic.examples:
+                md += f'- {example}\n'
+            md += '\n\n'
+
+        return md
+
+    def get_document_info(self):
         """
-        Return all items that have at least one mention of the topic
-        :param topic_id:
+        Gets all documents together with the corresponding topic and
         :return:
         """
+
+        columns = ['title', 'year', 'DOI', 'typeName', 'series', 'journal']
+        items = self.items[columns]
+        df = items.loc[self.responses.index.get_level_values(0)].reset_index(names='key')
+        document_info = self.topic_model.get_document_info(self.docs, df=df)
+
+        return document_info
+
+    def get_responses_for_topic(self, topic_id):
         topics = self.topic_model.topics_
 
         df = self.responses.to_frame(name='response')
@@ -59,40 +84,68 @@ class TopicModel:
         df.loc[:, 'topic'] = topics
         df = df[df['topic'] == topic_id]
 
+        return df
+
+    def get_items_for_topic(self, topic_id):
+        """
+        Return all items that have at least one mention of the topic
+        :param topic_id:
+        :return:
+        """
+        df = self.get_responses_for_topic(topic_id)
+
+        df = df.groupby(level=0).apply(lambda s: pd.Series({
+            'responses': s['response'].to_list(),
+            'n': len(s)
+        }))
+
         items = df.join(self.items, how='left')
 
         return items
 
 
-    def exclude_responses_with_topic(self, topic_id):
-        df = self.df
 
-        df = df[df['topic'] != topic_id]
+    def merge_topics(self, topics_to_merge):
 
-        responses = self.responses
+        self.topic_model.merge_topics(
+            docs=self.docs,
+            topics_to_merge=topics_to_merge
+        )
 
-        responses = responses.loc[df.index]
+        topics = self.topic_model.topics_
 
-        self.responses = responses
+        df = self.responses.to_frame()
+        df.loc[:, 'topic'] = topics
+        self.df = df
 
-    @property
-    def embeddings(self):
-        if self._embeddings is None:
-            self._embeddings = self.embedding_model.encode(
-                self.docs,
-                show_progress_bar=True
-            )
-        return self._embeddings
+        self.generate_names()
 
 
-    def interactive_model(self):
+    def _recalculate_embeddings(self):
+        self.embeddings = self.embedding_model.encode(
+            self.docs,
+            show_progress_bar=True
+        )
 
-        from ipywidgets import interact
+    def interact(self):
+
+        from ipywidgets import interact_manual, fixed, widgets
 
         docs = self.docs
         n = len(docs)
 
-        return interact(self.fit_model, min_cluster_size=(2, n))
+        interact_manual(
+            self.fit_model,
+            min_cluster_size=widgets.IntSlider(min=2, max=n, step=1, value=2, description_tooltip='Minimal size for a cluster to form'),
+            min_samples=widgets.IntSlider(min=1, max=n, step=1, value=1, description_tooltip='Should be smaller than min_cluster size'),
+            seed_topic_list=fixed(None),
+            language=fixed('en'),
+            min_df=(1, n),
+            max_df=(0.0, 1.0, 0.01),
+            n_components=fixed(5),
+            n_neighbors=fixed(15),
+            cluster_selection_method=widgets.Dropdown(options=['leaf', 'eom'], value='leaf')
+        )
 
     def fit_model(
             self,
@@ -150,42 +203,30 @@ class TopicModel:
         self.topic_model = topic_model
 
         df = self.responses.to_frame()
-
         df.loc[:, 'topic'] = topics
-
         self.df = df
 
         self.generate_names()
 
-    def hierarchy(self):
 
-        topic_model = self.topic_model
-        docs = self.docs
-
-        hierarchical_topics = topic_model.hierarchical_topics(docs)
-        fig = topic_model.visualize_hierarchy(hierarchical_topics=hierarchical_topics, custom_labels=True)
-        return fig
-
-    def generate_names(self):
+    def generate_names(self, n=20):
 
         s = ''
 
-        for index, row in self.topic_model.get_topic_info().iloc[1:].iterrows():
+        for index, row in self.topic_model.get_topic_info().iloc[1:n+1].iterrows():
             s += f'Topic {row["Topic"]}\n'
             keywords = ', '.join(row['Representation'])
             s += f'Keywords: {keywords}\n\n'
             examples = '\n'.join(['- ' + doc for doc in row['Representative_Docs']])
             s += f'Examples:\n{examples}\n\n'
 
-        print(len(s))
-
-        s = s[:10000]
 
         messages = [
             {
                 'role': 'system',
-                'content': """You are a helpful assistant.
+                'content': f"""You are a helpful assistant.
 Using the information below, find a label for each of the topics presented.
+The topics were retrieved bases on the prompt: {self.question}
 Give your answer as JSON with the numbers of the topic as the keys:"""
             },
             {
@@ -199,9 +240,15 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
         match = re.search(r'\{.*\}', answer, flags=re.DOTALL)
 
         if match:
-            topic_labels = json.loads(match.group(0))
+            try:
+                topic_labels = json.loads(match.group(0))
+            except Exception as e:
+                print('Generating labels failed, due to incorrect json format from the LLM.')
+                return
 
-            topic_labels = {int(key): value for key, value in topic_labels.items()}
+            topic_labels = {int(key): f"{key} {value}" for key, value in topic_labels.items()}
+
+            topic_labels[-1] = '-1 Outlier'
 
             self.topic_model.set_topic_labels(topic_labels)
 
@@ -243,6 +290,57 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
         fig.show()
 
     @property
+    def topic_labels(self):
+        return self.topics['label'].to_dict()
+
+    def topic_distribution(self, normalize=False, include_outlier=False):
+        items_topics_matrix = self.items_topics_matrix()
+
+        total = items_topics_matrix.sum()
+
+        if not include_outlier:
+            total = total.drop(-1)
+
+        if normalize:
+            total = total / total.sum()
+
+        return total
+
+    def visualize_topic_distribution(self, normalize=False, include_outlier=False, title='Topic Distribution'):
+
+        items_topics_matrix = self.items_topics_matrix()
+
+        total = items_topics_matrix.sum()
+
+        if not include_outlier:
+            total = total.drop(-1)
+
+        if normalize:
+            total = total / total.sum()
+
+        rename = self.topic_labels
+
+        total = total.to_frame(name='# Items')
+
+        total['Label'] = total.rename(rename).index
+
+        fig = px.pie(total, values='# Items', names='Label', hole=.3, title=title)
+
+        return fig
+
+
+    def visualize_hierarchy(self, title='Hierarchical Clustering', **kwargs):
+        hierarchical_topics = self.topic_model.hierarchical_topics(self.docs, **kwargs)
+        fig = self.topic_model.visualize_hierarchy(
+            hierarchical_topics=hierarchical_topics,
+            custom_labels=True,
+            title=title,
+            **kwargs
+        )
+        return fig
+
+
+
     def items_topics_matrix(self, bool_only=False) -> pd.DataFrame:
         """
         Returns a dataframe where each row represents an item and each column represents a topic.
@@ -253,7 +351,7 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
         """
         df = self.df
 
-        matrix = df.groupby(df.index)['topic'].value_counts().unstack().fillna(0).astype(int)
+        matrix = df.groupby(level=0)['topic'].value_counts().unstack().fillna(0).astype(int)
 
         if bool_only:
             matrix = matrix > 0
@@ -261,8 +359,6 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
         matrix.index.name = 'key'
 
         return matrix
-
-
 
 
     @property
@@ -289,50 +385,51 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
         return self.responses.to_list()
 
     def __repr__(self):
-        return self.topics
+        return str(self.topics)
 
-    @property
-    def propabilities(self):
-
-        topic_model = self.topic_model
-        topic_labels = topic_model.custom_labels_
-        #docs = self.docs
-
-        responses = self.responses
-
-        probs = pd.DataFrame(topic_model.probabilities_, index=responses.index)
-        probs = probs.rename(topic_labels, axis=1)
-        probs['Other'] = 1 - probs.sum(axis=1)
-
-        probs = probs.groupby('doi').mean()
-
-        return probs
 
     def save(self, path):
         self.topic_model.save(path, serialization="safetensors", save_ctfidf=True)
 
-    def topics_over_time(self):
+    def topics_over_time(self, normalize=False, include_outliers=False):
 
-        probs = self.propabilities
+        itm = self.items_topics_matrix()
 
-        time_series = probs.join(self.items['year'], how='left', on='doi')
+        total = itm.join(self.items['year']).groupby('year').sum()
 
-        # time_series['year'] = pd.to_datetime(time_series['year'], format='%Y')
+        if not include_outliers:
+            total = total.drop(-1, axis=1)
 
-        time_series['year'] = time_series['year'].astype(int)
+        if normalize:
+            total = total.div(total.sum(axis=1), axis=0)
 
-        time_series = time_series.groupby('year').mean() * 100
 
-        time_series = time_series.drop('Other', axis=1)
 
-        fig = px.line(time_series, title='Relevance of Rationales over Time', height=500, width=1000)
+        return total
+
+    def set_topic_labels(self, topic_labels):
+        self.topic_model.set_topic_labels(topic_labels)
+
+    def visualize_topics_over_time(self, normalize=False, include_outliers=False, title=None):
+
+        topic_labels = self.topic_labels
+
+        total = self.topics_over_time(normalize=normalize, include_outliers=include_outliers)
+
+        total = total.rename(topic_labels, axis=1)
+
+        fig = px.line(total, title=title, height=500, width=1000)
 
         fig.update_xaxes(title='Year')
-        fig.update_yaxes(title='Relevancy [%]', range=(0, 15))
-        fig.update_legends(title='Rationale')
+
+        if normalize:
+            y_axes_title = 'Percentage [%]'
+        else:
+            y_axes_title = '# Items'
+
+        fig.update_yaxes(title=y_axes_title)
+        fig.update_legends(title='Topic')
 
         fig.update_layout(margin=dict(t=50, b=10, r=10, l=10))
 
-        fig.show()
-
-        fig.write_image('figures/rationales_over_time.pdf')
+        return fig

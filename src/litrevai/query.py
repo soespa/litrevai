@@ -36,6 +36,18 @@ class Query:
     def prompt(self) -> Prompt:
         return self._query_model.prompt
 
+
+    def _repr_html_(self):
+        html = '<table>'
+        html += f'<tr><th>name<th><th>{self.name}<th><tr>'
+        html += f'<tr><th>question<th><td>{self.question}<td><tr>'
+        for key, value in self.params.items():
+            value = str(value)[:100]
+            html += f'<tr><th>{key}<th><td>{value}<td><tr>'
+        html += '</table>'
+
+        return html
+
     @property
     def params(self):
         return self.prompt.params
@@ -96,10 +108,16 @@ class Query:
         return project
 
     def interactive_labelling(self):
+        # TODO
         import ipywidgets as widgets
-        from IPython.display import display
 
-        responses = self.project.responses
+        responses = self.responses
+
+        if len(responses) == 0:
+            return
+
+        if isinstance(responses.iloc[0], list):
+            responses = responses.explode()
 
         texts = responses.to_list()
 
@@ -177,13 +195,14 @@ class Query:
         next_text_button.on_click(load_next_text)
         new_label_button.on_click(add_new_label)
 
-        # Display all widgets
-        display(widgets.VBox([
+        app = widgets.VBox([
             text_display,
             widgets.HBox([label_dropdown, new_label_text, new_label_button]),
             widgets.HBox([submit_button, next_text_button]),
             output
-        ]))
+        ])
+
+        return app
 
     def run(self, items: List[str] | pd.DataFrame | None = None):
         include_keys = _resolve_item_keys(items)
@@ -194,9 +213,23 @@ class Query:
         self.lr.test_query(self.query_id)
 
     def create_topic_model(self, **kwargs):
+
+        responses = self.responses
+
+        responses = responses[~responses.isna()]
+
+        if isinstance(responses.iloc[0], list):
+            responses = responses.explode()
+            responses.index = [responses.index, responses.groupby(level=0).cumcount()]
+
+        responses.name = 'response'
+
+        responses = responses[~responses.isna()]
+
         topic_model = TopicModel(
+            question=self.question,
             items=self.project.items,
-            responses=self.responses,
+            responses=responses,
             llm=self.lr.llm,
             **kwargs
         )

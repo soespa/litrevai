@@ -514,7 +514,7 @@ class LiteratureReview:
     def create_topic_model(self, query_id):
 
         query = Query(self, query_id)
-        topic_model = TopicModel(self.items, query.responses)
+        topic_model = query.create_topic_model()
         return topic_model
 
 

@@ -7,3 +7,4 @@ tests/db/*
 .env
 *zotero.sqlite
 /example_data/
+*__pycache__
