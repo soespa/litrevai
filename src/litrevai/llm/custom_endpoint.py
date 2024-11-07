@@ -24,7 +24,6 @@ class CustomEndpoint(BaseLLM):
     def generate_text(
             self,
             messages,
-            prefix_function=None,
             temperature=0.6,
             max_new_tokens=2048,
             top_p=0.9

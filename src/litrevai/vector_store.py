@@ -157,7 +157,6 @@ class VectorStore:
                 lines.append(f'{key}: {value}')
             formatted_context = '\n'.join(lines) + '\n' + formatted_context
 
-
         messages = prompt.messages(formatted_context)
 
         answer = self.llm.generate_text(

@@ -3,6 +3,7 @@ import pandas as pd
 from litrevai import LiteratureReview, OpenPrompt
 from litrevai.project import Project
 from litrevai.query import Query
+from litrevai.topic_modelling import TopicModel
 
 
 @pytest.fixture(scope="session")
@@ -53,6 +54,23 @@ def test_create_project(db):
     query = project.queries.get(query_name)
 
     assert isinstance(query, Query)
+
+
+def test_topic_model():
+    lr = LiteratureReview(db)
+
+    project_name = "New Project"
+
+    project = lr.projects.get(project_name)
+
+    query_name = "New Query"
+
+    query = project.queries.get(query_name)
+
+    topic_model = query.create_topic_model()
+
+    assert isinstance(topic_model, TopicModel)
+
 
 
 def test_import_zotero(db):

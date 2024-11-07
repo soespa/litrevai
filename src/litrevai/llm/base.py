@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 
-
 load_dotenv()
+
 
 class BaseLLM:
     """
@@ -12,13 +12,19 @@ class BaseLLM:
         pass
 
     def generate_text(
-        self,
-        messages,
-        prefix_function=None,
-        temperature=0.6,
-        max_new_tokens=2048,
-        top_p=0.9
+            self,
+            messages,
+            temperature=0.6,
+            max_new_tokens=2048,
+            top_p=0.9
     ) -> str | None:
+        """
+        Generates an answer to a chat.
+
+        :param messages:
+        :param temperature:
+        :param max_new_tokens:
+        :param top_p:
+        :return:
+        """
         pass
-
-

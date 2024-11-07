@@ -6,7 +6,7 @@ from litrevai.llm import BaseLLM
 
 class OpenAIModel(BaseLLM):
 
-    def __init__(self, model=None, api_key=None):
+    def __init__(self, model=None, api_key=None, **kwargs):
         """
         Initialize the OpenAI model client.
 
@@ -17,9 +17,9 @@ class OpenAIModel(BaseLLM):
         self.model = model
         openai.api_key = api_key  # Set the OpenAI API key
 
-
         self.client = OpenAI(
-            api_key=api_key
+            api_key=api_key,
+            **kwargs
         )
 
     def generate_text(
@@ -31,15 +31,6 @@ class OpenAIModel(BaseLLM):
     ) -> str | None:
         """
         Generate text based on the provided messages using OpenAI's API.
-
-        Args:
-            messages (list): A list of messages to send to the model.
-            temperature (float): Sampling temperature.
-            max_tokens (int): The maximum number of tokens to generate.
-            top_p (float): Nucleus sampling parameter.
-
-        Returns:
-            str | None: The generated text or None if the generation fails.
         """
         try:
             # Call OpenAI's chat completion API
