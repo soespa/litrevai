@@ -124,20 +124,20 @@ class Project:
 
         self.lr.rag(prompt=prompt, keys=keys)
 
-    def search(self, search_phrase, n: int = 10):
+    def search(self, search_phrase: str, n: int = 10) -> pd.DataFrame:
+        """
+        Performs a full-text similarity search based on the provided search phrase for all items in the project.
 
-        context: pd.DataFrame = self.lr.vs.get_context(search_phrase, n=n)
-
-        def aggregate(context):
-            return pd.Series({
-                'paragraphs': '\n\n'.join(context['text']),
-                'distance': context['_distance'].min()
-            })
-
+        :param search_phrase: The phrase to search for within the items
+        :param n: The number of items to return
+        :return: A DataFrame containing the matching text passages and their respective sources.
+        """
         items = self.items
-        context = context.groupby('key').apply(aggregate).sort_values('distance')
-        df = context.join(items, how='left')
-
+        df = self.lr.search(
+            search_phrase=search_phrase,
+            n=n,
+            items=items
+        )
         return df
 
     @property
@@ -151,13 +151,27 @@ class Project:
     def delete_project(self):
         self.db.delete_project(self.project_id)
 
-    def sample(self):
+    def sample(self) -> str:
+        """
+        Returns a random item from the project. Useful for testing prompts.
+        :return:
+        """
 
         items = self.items
 
-        return items.sample(1).iloc[0].name
+        if len(items) > 0:
+            key = items.sample(1).iloc[0].name
+            item = self.lr.get_item(key)
+            return item
+        else:
+            raise Exception('The projects contains no items to sample from.')
 
-    def add_items(self, items):
+    def add_items(self, items) -> None:
+        """
+        Adds one or more items from the database to the project.
+
+        :param items: Items to add to the project.
+        """
 
         keys = _resolve_item_keys(items)
 
@@ -166,6 +180,12 @@ class Project:
             session.commit()
 
     def remove_items(self, items):
+        """
+        Removes one or more items from the project.
+        Does not delete the items from the database.
+
+        :param items: Items to remove from the project.
+        """
 
         keys = _resolve_item_keys(items)
 
@@ -178,7 +198,9 @@ class Project:
         self.lr.run_project(self.project_id, include_keys=include_keys)
 
 
-    def add_collection(self, collection_name):
+    def add_items_from_collection(self, collection_name):
+
+
         with self.Session() as session:
             collection = session.query(Collection).where(Collection.name == collection_name).first()
             if collection:

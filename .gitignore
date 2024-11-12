@@ -9,3 +9,4 @@ tests/db/*
 /example_data/
 *__pycache__
 dist/
+venv

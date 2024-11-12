@@ -42,7 +42,7 @@ Using **LitRevAI** typically follows these steps:
 ### RAG
 
 ```python
-from litrevai import LiteratureReview, YesNoPrompt, ListPrompt
+from litrevai import LiteratureReview, YesNoPrompt, ListPrompt, HuggingfaceModel
 
 # Access Database
 lr = LiteratureReview('db')
@@ -63,6 +63,10 @@ prog_query = project.create_query(
         question="Does the document report on a study or experiment involving programming?"
     )
 )
+
+# Running a query requires to define an inference model
+model = HuggingfaceModel(model='meta-llama/Llama-3.1-8B-Instruct')
+lr.set_llm(model)
 
 # Run query over all documents in the project
 prog_query.run()
@@ -87,7 +91,7 @@ print(concept_query.responses)
 ### Topic Modelling
 
 ```python
-from litrevai import LiteratureReview, YesNoPrompt, ListPrompt
+from litrevai import LiteratureReview
 
 lr = LiteratureReview('db')
 
@@ -96,6 +100,14 @@ query = lr.queries['prog_concepts']
 topic_model = query.create_topic_model()
 
 topic_model.summary()
+```
+
+
+### Full-Text Search
+
+```python
+df = project.search('Epistemic Programming')
+df
 ```
 
 

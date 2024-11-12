@@ -222,11 +222,13 @@ class Query:
             raise Exception('There are no responses for that query yet.')
 
         if isinstance(responses.iloc[0], list):
-            responses = responses.explode()
+            responses: pd.Series = responses.explode()
             responses.index = [responses.index, responses.groupby(level=0).cumcount()]
             responses = responses[~responses.isna()]
+            responses.index.rename(names=['key', 'i'], inplace=True)
 
         responses.name = 'response'
+
 
         topic_model = TopicModel(
             question=self.question,

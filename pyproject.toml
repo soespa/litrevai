@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = 'LitRevAI (Literature Review AI) is a Python package designed to automate systematic literature reviews using natural language processing (NLP) techniques.'
 readme = "README.md"
 requires-python = ">=3.9"
-license = "MIT"
+license = { text = "MIT" }
 keywords = []
 authors = [
   { name = "Soeren Sparmann", email = "sparmann@mail.uni-paderborn.de" },
@@ -49,6 +49,13 @@ Source = "https://github.com/soespa/litrevai"
 
 [tool.hatch.version]
 path = "src/litrevai/__about__.py"
+
+
+[tool.hatch.build]
+exclude = [
+  "/docs",
+]
+
 
 [tool.hatch.envs.default]
 dependencies = [

@@ -17,7 +17,7 @@ from .zotero_connector import ZoteroConnector
 from .vector_store import VectorStore
 from typing import TypeAlias
 
-ItemCollection: TypeAlias = list[str] | str | pd.DataFrame
+ItemCollection: TypeAlias = list[str] | str | pd.DataFrame | None
 
 
 class LiteratureReview:
@@ -79,6 +79,32 @@ class LiteratureReview:
         df = BibliographyItem.to_df(items)
         return df
 
+    def search(self, search_phrase: str, n: int = 10, items: ItemCollection = None) -> pd.DataFrame:
+        """
+        Performs a full-text similarity search based on the provided search phrase.
+
+        :param search_phrase: The phrase to search for within the items
+        :param n: The number of items to return
+        :param items: The collection of items to search within
+        :return: A DataFrame containing the matching text passages and their respective sources.
+        """
+
+        item_keys = _resolve_item_keys(items)
+
+        context: pd.DataFrame = self.vs.get_context(search_phrase, n=n, keys=item_keys)
+
+        def aggregate(context):
+            return pd.Series({
+                'paragraphs': '\n\n'.join(context['text']),
+                'distance': context['_distance'].min()
+            })
+
+        context = context.groupby('key').apply(aggregate).sort_values('distance')
+        items = self.items
+        df = context.join(items, how='left')
+
+        return df
+
     def remove_items(self, items):
         item_keys = _resolve_item_keys(items)
         with self.Session() as session:
@@ -90,18 +116,18 @@ class LiteratureReview:
     def get_collection_by_path(self, path: str) -> pd.DataFrame:
         """
         Returns all items within a collection by a given path.
-        :param path: Library/Path/To/Collection
-        :return:
+        :param path: File-Path like string. Example: Library/Path/To/Collection
+        :return: DataFrame containing all items within that collection.
         """
         with self.Session() as session:
-            collection = session.query(Collection).where(Collection.path == path).first()
+            collections = session.query(Collection).all()
 
-            if collection is not None:
-                items = collection.get_items()
-                df = BibliographyItem.to_df(items)
-                return df
-            else:
-                raise Exception(f'There is no collection with the path {path}')
+            for collection in collections:
+                if collection.path == path:
+                    items = collection.get_items()
+                    df = BibliographyItem.to_df(items)
+                    return df
+            raise Exception(f'There is no collection with the path {path}')
 
     def to_bibtex(self, items, file_path: str | None = None) -> str:
         """
@@ -150,6 +176,17 @@ class LiteratureReview:
                 f.write(s)
 
         return s
+
+    def _resolve_collection(self, collection: str | int):
+        if isinstance(collection, str):
+            path = collection
+            collection = self.get_collection_by_path(path)
+            return collection
+        elif isinstance(collection, int):
+            collection = self.get_collection(collection)
+            return collection
+        else:
+            raise Exception(f'There is no collection matching {collection}')
 
     def get_library(self, library_id):
         with self.Session() as session:

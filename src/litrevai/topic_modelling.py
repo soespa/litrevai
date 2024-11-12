@@ -12,6 +12,7 @@ from umap import UMAP
 from sklearn.feature_extraction.text import CountVectorizer
 from hdbscan import HDBSCAN
 from .llm import BaseLLM
+from scipy.spatial.distance import cosine
 
 
 class TopicModel:
@@ -47,6 +48,23 @@ class TopicModel:
         return self._items
 
 
+    def find_topics(self, search_term: str, top_n=5):
+        return self.topic_model.find_topics(search_term=search_term, top_n=top_n)
+
+    def find_document(self, search_term: str, top_n=5):
+        term_embedding = self.embedding_model.encode(search_term)
+
+        similarities = [1 - cosine(term_embedding, emb) for emb in self.embeddings]
+
+        document_info = self.get_document_info()
+
+        document_info = document_info.assign(similarities=similarities)
+
+        document_info = document_info.sort_values('similarities', ascending=False)
+
+        return document_info.iloc[:top_n]
+
+
     def _repr_markdown_(self):
         md = ''
 
@@ -71,8 +89,35 @@ class TopicModel:
 
         columns = ['title', 'year', 'DOI', 'typeName', 'series', 'journal']
         items = self.items[columns]
-        df = items.loc[self.responses.index.get_level_values(0)].reset_index(names='key')
+
+        responses = self.responses.to_frame(name='response')\
+
+        if isinstance(responses.index, pd.MultiIndex):
+            responses.reset_index(names=['key', 'i'], inplace=True)
+        else:
+            responses.reset_index(names=['key'], inplace=True)
+
+        df = responses.join(items, how='left', on='key')
+
         document_info = self.topic_model.get_document_info(self.docs, df=df)
+
+        document_info.drop(['Name', 'Representation', 'Representative_Docs', 'Top_n_words'], axis=1, inplace=True)
+
+        document_info.rename({
+                'Document': 'document',
+                'Topic': 'topic',
+                'CustomName': 'label',
+                'Probability': 'prop',
+                'Representative_document': 'is_repr'
+            },
+            axis=1,
+            inplace=True
+        )
+
+        if 'i' in document_info.columns:
+            document_info.set_index(['key', 'i'], inplace=True)
+        else:
+            document_info.set_index('key', inplace=True)
 
         return document_info
 
@@ -103,8 +148,6 @@ class TopicModel:
 
         return items
 
-
-
     def merge_topics(self, topics_to_merge):
 
         self.topic_model.merge_topics(
@@ -112,20 +155,18 @@ class TopicModel:
             topics_to_merge=topics_to_merge
         )
 
-        topics = self.topic_model.topics_
-
-        df = self.responses.to_frame()
-        df.loc[:, 'topic'] = topics
-        self.df = df
+        self._update_df()
 
         self.generate_names()
 
 
     def _recalculate_embeddings(self):
-        self.embeddings = self.embedding_model.encode(
+        embeddings = self.embedding_model.encode(
             self.docs,
             show_progress_bar=True
         )
+
+        self.embeddings = embeddings
 
     def interact(self):
 
@@ -146,6 +187,17 @@ class TopicModel:
             n_neighbors=fixed(15),
             cluster_selection_method=widgets.Dropdown(options=['leaf', 'eom'], value='leaf')
         )
+
+
+    def _update_df(self):
+        topics = self.topic_model.topics_
+        embeddings = self.embeddings
+
+        df = self.responses.to_frame()
+        df.loc[:, 'topic'] = topics
+        df.loc[:, 'embeddings'] = embeddings.tolist()
+
+        self.df = df
 
     def fit_model(
             self,
@@ -202,9 +254,7 @@ class TopicModel:
 
         self.topic_model = topic_model
 
-        df = self.responses.to_frame()
-        df.loc[:, 'topic'] = topics
-        self.df = df
+        self._update_df()
 
         self.generate_names()
 
@@ -360,10 +410,33 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
 
         return matrix
 
+    def propability_matrix(self) -> pd.DataFrame:
+        props = self.topic_model.probabilities_
+        responses = self.responses
+
+        index = responses.index
+
+        columns = range(props.shape[1])
+
+        prop_df = pd.DataFrame(props, index=index, columns=columns)
+
+        prop_df.loc[:, -1] = 1 - prop_df.sum(axis=1)
+
+        return prop_df
+
+    def item_prop_matrix(self, include_outlier=True):
+
+        prop_df = self.propability_matrix()
+
+        prop_df = prop_df.groupby(level=0).mean()
+
+        if not include_outlier:
+            prop_df = prop_df.drop(-1, axis=1)
+
+        return prop_df
 
     @property
     def topics(self):
-
         temp = self.topic_model.get_topic_info()
 
         rename = {
@@ -402,8 +475,6 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
 
         if normalize:
             total = total.div(total.sum(axis=1), axis=0)
-
-
 
         return total
 

@@ -6,6 +6,7 @@ from typing import Literal
 
 import pandas as pd
 from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column, Session
 from sqlalchemy.sql import func
 
@@ -52,6 +53,12 @@ item_author_association = Table(
 item_collection_association = Table(
     'item_collection', Base.metadata,
     Column('collection_id', Integer, ForeignKey('collections.id'), primary_key=True),
+    Column('bibliography_key', Integer, ForeignKey('bibliography_items.key'), primary_key=True)
+)
+
+item_tag_association = Table(
+    'item_tag', Base.metadata,
+    Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True),
     Column('bibliography_key', Integer, ForeignKey('bibliography_items.key'), primary_key=True)
 )
 
@@ -102,9 +109,10 @@ class BibliographyItem(Base):
     collections = relationship('Collection', secondary=item_collection_association, back_populates="items", lazy='joined')
     projects = relationship('ProjectModel', secondary=item_project_association, back_populates="items")
     library = relationship("Library", back_populates="items", lazy='joined')
+    tags = relationship('Tag', secondary=item_tag_association, back_populates="items", lazy='joined')
 
 
-    @property
+    @hybrid_property
     def authors_list(self):
         return [f'{author.lastName}, {author.firstName}' for author in self.authors]
 
@@ -132,6 +140,13 @@ class BibliographyItem(Base):
             data.append([getattr(item, column) for column in columns])
 
         df = pd.DataFrame(data, columns=columns).set_index('key')
+
+        df.rename({
+            'authors_list': 'authors'
+            },
+            axis=1,
+            inplace=True
+        )
 
         return df
 
@@ -215,6 +230,9 @@ class Response(Base):
 
 
 class Library(Base):
+    """
+    Zotero Library / Group
+    """
     __tablename__ = 'libraries'
 
     id = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -249,8 +267,6 @@ class ProjectModel(Base):
 
 
 
-
-
 class Collection(Base):
     __tablename__ = 'collections'
 
@@ -261,12 +277,12 @@ class Collection(Base):
 
     # Relationships
     items = relationship('BibliographyItem', secondary=item_collection_association, back_populates="collections")
-    parent = relationship('Collection', back_populates='children')
-    children = relationship('Collection', back_populates='parent', remote_side=[id])
+    parent = relationship('Collection', back_populates='children', remote_side=[id], lazy='joined')
+    children = relationship('Collection', back_populates='parent')
     library = relationship('Library', back_populates='collections')
 
     def __repr__(self):
-        return f"<Response(id={self.id}, name='{self.name}')>"
+        return f"Collection(id={self.id}, name='{self.name}')"
 
     def get_items(self):
         items = self.items
@@ -282,3 +298,16 @@ class Collection(Base):
             return os.path.join(self.library.name, self.name)
         else:
             return os.path.join(self.parent.path, self.name)
+
+
+class Tag(Base):
+    __tablename__ = 'tags'
+
+    id = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name = mapped_column(String, nullable=False)
+
+    # Relationships
+    items = relationship('BibliographyItem', secondary=item_tag_association, back_populates="tags")
+
+    def __repr__(self):
+        return f"Tag(id={self.id}, name='{self.name}')"

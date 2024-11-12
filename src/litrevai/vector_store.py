@@ -65,9 +65,9 @@ class VectorStore:
 
     def get_keys(self):
         """
-        Returns all unique keys from the database.
+        Returns all unique items from the database.
 
-        :return: List of unique keys
+        :return: List of unique items
         """
         docs = self.documents.to_pandas()
 
@@ -95,12 +95,12 @@ class VectorStore:
 
         return True
 
-    def get_context(self, search_phrase, keys: None | List[str] = None, n=10, sort_by_position=True) -> pd.DataFrame:
+    def get_context(self, search_phrase, items: None | List[str] | str | pd.DataFrame = None, n=10, sort_by_position=True) -> pd.DataFrame:
         """
         Retrieves the context that fits the query using similarity search.
 
         :param search_phrase:
-        :param keys: If None, search within all items. If a list of strings is passed, only items with the keys are considered.
+        :param items: If None, search within all items. If a list of strings is passed, only items with the items are considered.
         :param n: Number of chunks to return
         :param sort_by_position: If True, sort chunks by they order they appear in the text
         :return:
@@ -108,17 +108,18 @@ class VectorStore:
 
         # TODO: Add re-ranker (https://huggingface.co/BAAI/bge-reranker-v2-m3)
 
-        if keys is not None:
+        if items is not None:
 
-            if type(keys) == str:
-                filter_keys = "key = '{}'".format(keys)
-
-            elif type(keys) == list:
-                key_string = ', '.join([f"'{key}'" for key in keys])
+            if type(items) == str:
+                filter_keys = "key = '{}'".format(items)
+            elif type(items) == list:
+                key_string = ', '.join([f"'{key}'" for key in items])
                 filter_keys = f"key IN ({key_string})"
-            elif isinstance(keys, pd.DataFrame):
-                key_string = ', '.join([f"'{key}'" for key in keys.index])
+            elif isinstance(items, pd.DataFrame):
+                key_string = ', '.join([f"'{key}'" for key in items.index])
                 filter_keys = f"key IN ({key_string})"
+            elif isinstance(items, BibliographyItem):
+                filter_keys = "key = '{}'".format(items.key)
 
             context = self.documents.search(search_phrase).where(filter_keys, prefilter=True).limit(n).to_pandas()
         else:
@@ -145,7 +146,7 @@ class VectorStore:
         Performs Retrieval Augmented Generation using the given prompt on one or more items.
 
         :param prompt: Prompt which contains the question
-        :param keys:
+        :param items:
         :param max_new_tokens:
         :param temperature:
         :param top_p:
@@ -155,7 +156,7 @@ class VectorStore:
         :return: Tuple with the answer and the retrieved context.
         """
 
-        context = self.get_context(search_phrase=prompt.question, keys=keys, n=n, sort_by_position=sort_by_position)
+        context = self.get_context(search_phrase=prompt.question, items=keys, n=n, sort_by_position=sort_by_position)
 
         formatted_context = "\n\n".join(context['text'])
 
