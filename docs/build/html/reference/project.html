@@ -14,7 +14,7 @@
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Query" href="query.html" />
+    <link rel="next" title="Prompt" href="prompt.html" />
     <link rel="prev" title="LiteratureReview" href="literature_review.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -41,6 +41,20 @@
 <dd><p>A project contains a collection of BibliographyItems and a set of queries.
 When the project is executed, it runs all queries over all items in the project.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="litrevai.project.Project.add_items">
+<span class="sig-name descname"><span class="pre">add_items</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.project.Project.add_items" title="Link to this definition">¶</a></dt>
+<dd><p>Adds one or more items from the database to the project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>items</strong> – Items to add to the project.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="litrevai.project.Project.create_query">
 <span class="sig-name descname"><span class="pre">create_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.project.Project.create_query" title="Link to this definition">¶</a></dt>
 <dd><p>Create a query and add it to the project.
@@ -54,6 +68,46 @@ Raises an error if a query with the given name already exists.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Returns the created prompt</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.project.Project.remove_items">
+<span class="sig-name descname"><span class="pre">remove_items</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.project.Project.remove_items" title="Link to this definition">¶</a></dt>
+<dd><p>Removes one or more items from the project.
+Does not delete the items from the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>items</strong> – Items to remove from the project.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.project.Project.sample">
+<span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.project.Project.sample" title="Link to this definition">¶</a></dt>
+<dd><p>Returns a random item from the project. Useful for testing prompts.
+:rtype: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>
+:return:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="litrevai.project.Project.search">
+<span class="sig-name descname"><span class="pre">search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_phrase</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#litrevai.project.Project.search" title="Link to this definition">¶</a></dt>
+<dd><p>Performs a full-text similarity search based on the provided search phrase for all items in the project.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>search_phrase</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – The phrase to search for within the items</p></li>
+<li><p><strong>n</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – The number of items to return</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A DataFrame containing the matching text passages and their respective sources.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -94,6 +148,7 @@ Raises an error if a query with the given name already exists.</p>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="literature_review.html">LiteratureReview</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prompt.html">Prompt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="query.html">Query</a></li>
 <li class="toctree-l2"><a class="reference internal" href="zotero.html">Zotero Connector</a></li>
 </ul>
@@ -106,7 +161,7 @@ Raises an error if a query with the given name already exists.</p>
   <li><a href="../index.html">Documentation overview</a><ul>
   <li><a href="index.html">Reference</a><ul>
       <li>Previous: <a href="literature_review.html" title="previous chapter">LiteratureReview</a></li>
-      <li>Next: <a href="query.html" title="next chapter">Query</a></li>
+      <li>Next: <a href="prompt.html" title="next chapter">Prompt</a></li>
   </ul></li>
   </ul></li>
 </ul>
