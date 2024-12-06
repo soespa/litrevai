@@ -9,7 +9,7 @@ import os
 from .llm import BaseLLM
 from .pdf2text import pdf2text
 from .query import Query
-from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes
+from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes, Author
 from .util import parse_bibtex, _resolve_item_keys
 from .project import Project
 from .database import Database
@@ -91,7 +91,7 @@ class LiteratureReview:
 
         item_keys = _resolve_item_keys(items)
 
-        context: pd.DataFrame = self.vs.get_context(search_phrase, n=n, keys=item_keys)
+        context: pd.DataFrame = self.vs.get_context(search_phrase, n=n, items=item_keys)
 
         def aggregate(context):
             return pd.Series({
@@ -145,7 +145,7 @@ class LiteratureReview:
 
             for item in items:
                 authors = " and ".join([
-                    f"{author.firstName} {author.lastName}" for author in item.authors
+                    f"{author.first_name} {author.last_name}" for author in item.authors
                 ])
 
                 field_dict = {
@@ -191,9 +191,16 @@ class LiteratureReview:
     def get_library(self, library_id):
         with self.Session() as session:
             library = session.get(Library, library_id)
+            name = library.name
             items = library.items
+            df = BibliographyItem.to_df(items)
+        return name, df
 
-        df = BibliographyItem.to_df(items)
+    @property
+    def authors(self) -> pd.DataFrame:
+        with self.Session() as session:
+            authors = session.query(Author).all()
+            df = Author.to_df(authors)
         return df
 
     @property
@@ -381,6 +388,29 @@ class LiteratureReview:
 
         self.db.import_zotero(zotero_path, filter_type_names, filter_libraries, like)
         self.update_vector_store()
+
+
+    def search_author(self, search_name: str) -> pd.DataFrame:
+        """
+        Search for authors by their name.
+        :param search_name: Name to search for.
+        :return:
+        """
+        items = self.items
+
+        with self.db.Session() as session:
+            authors = self.db.search_author(session, search_name=search_name)
+            df = Author.to_df(authors)
+
+        return df
+
+    def get_items_by_author(self, author_id):
+        with self.Session() as session:
+            items = self.db.get_items_by_author(session, author_id)
+            df = BibliographyItem.to_df(items)
+
+        return df
+
 
     def run_query(self, query_id, include_keys=None, save_responses=True, debug=False):
         with self.db.Session() as session:

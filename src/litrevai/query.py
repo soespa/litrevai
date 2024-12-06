@@ -209,6 +209,13 @@ class Query:
 
         self.lr.run_query(self.query_id, include_keys=include_keys)
 
+    def summarize(self):
+        """
+        Todo: Summarize all responses to the query
+        :return:
+        """
+        responses = self.responses
+
     def test(self):
         self.lr.test_query(self.query_id)
 

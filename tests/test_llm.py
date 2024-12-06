@@ -1,17 +1,35 @@
+import sys
+
+sys.path.append('../src')
+
+from litrevai import OpenAIModel, HuggingfaceModel
 
 import pytest
 
-def test_hf():
-    from litrevai.llm import HuggingfaceModel
 
+messages = [{
+    'role': 'user',
+    'content': 'What is the capital of france?'
+}]
+
+@pytest.mark.skip(reason="No Huggingface configured.")
+def test_hf():
     model = HuggingfaceModel()
 
-    assert model is not None
+    answer = model.generate_text(messages=messages)
 
+    print(answer)
+
+    assert isinstance(answer, str)
+    assert len(answer) > 0
 
 
 def test_openai():
-    from litrevai.llm import OpenAIModel
     model = OpenAIModel()
 
-    assert model is not None
+    answer = model.generate_text(messages=messages)
+
+    print(answer)
+
+    assert isinstance(answer, str)
+    assert len(answer) > 0

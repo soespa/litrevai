@@ -1,5 +1,5 @@
 from typing import List
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import Session, sessionmaker
 from tqdm.auto import tqdm
 from .acm import load_binder
@@ -159,14 +159,14 @@ class Database:
                         last_name, first_name = s.split(', ')
 
                         author = session.query(Author).where(
-                            Author.firstName == first_name,
-                            Author.lastName == last_name
+                            Author.first_name == first_name,
+                            Author.last_name == last_name
                         ).first()
 
                         if not author:
                             author = Author(
-                                firstName=first_name,
-                                lastName=last_name
+                                first_name=first_name,
+                                last_name=last_name
                             )
                             session.add(author)
 
@@ -283,18 +283,34 @@ class Database:
 
     def get_or_create_author_by_name(self, first_name, last_name):
         session = self.session
-        author = session.query(Author).where(Author.firstName == first_name, Author.lastName == last_name).first()
+        author = session.query(Author).where(Author.first_name == first_name, Author.last_name == last_name).first()
 
         if not author:
             author = Author(
-                firstName=first_name,
-                lastName=last_name
+                first_name=first_name,
+                last_name=last_name
             )
             session.add(author)
             session.commit()
 
         # session.expunge(author)
         return author
+
+    def get_items_by_author(self, session, author_id):
+        author = session.get(Author, author_id)
+        items = session.query(BibliographyItem).where(BibliographyItem.authors.contains(author)).all()
+        return items
+
+    def search_author(self, session, search_name):
+        authors = session.query(Author).filter(
+            or_(
+                Author.first_name.ilike(f"%{search_name}%"),
+                Author.last_name.ilike(f"%{search_name}%"),
+                Author.full_name.ilike(f"%{search_name}%")
+            )
+        ).all()
+
+        return authors
 
     def add_response(self, query, item, text):
         response = Response(query=query, item=item)
@@ -422,8 +438,8 @@ class Database:
 
                 if not author:
                     author = Author(id=author_id)
-                    author.firstName = row.firstName
-                    author.lastName = row.lastName
+                    author.first_name = row.first_name
+                    author.last_name = row.last_name
                     session.add(author)
 
             session.commit()

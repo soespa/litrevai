@@ -29,6 +29,12 @@ class Prompt:
     params: dict = {}
 
     def __init__(self, question, **params):
+        """
+        Base class for all prompts.
+
+        :param question: The question or command used for RAG.
+        :param params:
+        """
         self.question = question
         self.params = params
         self.system_prompt = load_prompt(self.name)
@@ -36,6 +42,7 @@ class Prompt:
         if 'concept' in params:
             concept = params.get('concept')
             self.system_prompt = self.system_prompt + f"Consider the following definition: {concept}\n"
+
 
     def parse_value(self, answer):
         return answer
@@ -98,7 +105,7 @@ class ListPrompt(Prompt):
         self.system_prompt = self.system_prompt.format(self.n)
 
     def parse_value(self, answer) -> List[str]:
-        return re.findall(r'^[-*+] (.+)$', answer, flags=re.MULTILINE)
+        return re.findall(r'^[-*+0-9]\.? (.+)$', answer, flags=re.MULTILINE)
 
 
 @register_prompt

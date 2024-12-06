@@ -41,7 +41,7 @@ class ZoteroConnector:
 
         def authors_as_list(group):
             s = group.sort_values('orderIndex')
-            return (s['lastName'] + ', ' + s['firstName']).to_list()
+            return (s['last_name'] + ', ' + s['first_name']).to_list()
 
         authors = authors.groupby('key').apply(authors_as_list).rename('author')
         df = items.join(authors)
@@ -110,7 +110,7 @@ JOIN collections ON collectionItems.collectionID=collections.collectionID;
         conn = sqlite3.connect(self.file_path)
 
         sql_query = '''
-                SELECT creators.creatorID, creators.firstName, creators.lastName FROM creators
+                SELECT creators.creatorID, creators.first_name, creators.last_name FROM creators
                 '''
 
         authors = pd.read_sql(sql_query, conn).set_index('creatorID')

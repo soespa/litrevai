@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 
-load_dotenv()
 
 
 class BaseLLM:
@@ -9,7 +8,18 @@ class BaseLLM:
     """
 
     def __init__(self):
-        pass
+        load_dotenv()
+
+
+    def test(self):
+        messages = [
+            {
+                'role': 'user',
+                'content': "What is the capital of france?"
+            }
+        ]
+        answer = self.generate_text(messages)
+        return answer
 
     def generate_text(
             self,

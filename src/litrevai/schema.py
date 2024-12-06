@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Literal
 
 import pandas as pd
-from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint
+from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint, literal
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column, Session
 from sqlalchemy.sql import func
@@ -74,10 +74,30 @@ class Author(Base):
 
     # Define columns for the table
     id = mapped_column(Integer, primary_key=True, autoincrement=True)
-    firstName = mapped_column(String, nullable=True)
-    lastName = mapped_column(String, nullable=True)
+    first_name = mapped_column(String, nullable=True)
+    last_name = mapped_column(String, nullable=True)
 
     items = relationship("BibliographyItem", secondary=item_author_association, back_populates="authors")
+
+    @classmethod
+    def to_df(cls, items):
+        columns = [column.name for column in cls.__table__.columns]
+
+        data = []
+        for item in items:
+            data.append([getattr(item, column) for column in columns])
+
+        df = pd.DataFrame(data, columns=columns).set_index('id')
+
+        return df
+
+    @hybrid_property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
+
+    @full_name.expression
+    def full_name(cls):
+        return cls.first_name + literal(' ') + cls.last_name
 
 class BibliographyItem(Base):
     __tablename__ = 'bibliography_items'
@@ -114,15 +134,12 @@ class BibliographyItem(Base):
 
     @hybrid_property
     def authors_list(self):
-        return [f'{author.lastName}, {author.firstName}' for author in self.authors]
+        return [f'{author.last_name}, {author.first_name}' for author in self.authors]
 
     def __repr__(self):
         authors = '; '.join(self.authors_list)
         return f"<BibliographyEntry(key={self.key}, title={self.title}, authors={authors})>"
 
-
-    def to_bibtex(self):
-        pass
 
     def zotero_link(self):
         return f"zotero://select/items/{self.key}"

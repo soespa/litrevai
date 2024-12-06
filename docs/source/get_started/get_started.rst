@@ -16,12 +16,22 @@ To create a project just provide a name.
 
 
 
+Import items from Zotero
+------------------------
+
+.. code-block:: py
+
+    lr.import_zotero()
+
+
 Access a project
 ----------------
 
 .. code-block:: py
 
     project = lr.projects.get('New Project')
+
+    project.add_items(lr.items)
 
     items = project.items
 
@@ -41,6 +51,16 @@ Create a query
     )
 
 
+Configure an inference model
+----------------------------
+
+.. code-block:: py
+
+    model = OpenAIModel()
+
+    lr.set_llm(model)
+
+
 Run a query
 -----------
 
@@ -54,3 +74,13 @@ Alternatively, to run a whole project
 .. code-block:: py
 
     project.run()
+
+
+Create a topic model
+--------------------
+
+.. code-block:: py
+
+    topic_model = query.create_topic_model(min_cluster_size=5)
+
+    topic_model.visualize_topic_distribution()

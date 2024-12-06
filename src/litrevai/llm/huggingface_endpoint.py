@@ -1,11 +1,18 @@
+import os
 from huggingface_hub import InferenceClient, ChatCompletionOutput
-
 from .base import BaseLLM
 
 
 class HuggingfaceModel(BaseLLM):
 
     def __init__(self, model=None, base_url=None, api_key=None, **kwargs):
+
+        super().__init__()
+
+        if api_key is None:
+            api_key = os.getenv('HF_TOKEN', '')
+        if base_url is None:
+            base_url = os.getenv('HF_INFERENCE_ENDPOINT', None)
 
         self.model = model
 
