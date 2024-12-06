@@ -2,7 +2,7 @@ from typing import List
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import Session, sessionmaker
 from tqdm.auto import tqdm
-from .acm import load_binder
+from .acm import import_binder
 from .pdf2text import pdf2text
 from .prompt import Prompt
 from .schema import *
