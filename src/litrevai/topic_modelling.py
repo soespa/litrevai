@@ -251,8 +251,6 @@ class TopicModel:
             seed_topic_list=seed_topic_list
         )
 
-        print(self.docs)
-
         topics, probs = topic_model.fit_transform(self.docs, self.embeddings)
 
         self.topic_model = topic_model
@@ -340,7 +338,7 @@ Give your answer as JSON with the numbers of the topic as the keys:"""
             title=title
         )
 
-        fig.show()
+        return fig
 
     @property
     def topic_labels(self):

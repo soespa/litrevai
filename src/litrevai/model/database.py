@@ -452,9 +452,10 @@ class Database:
             for i, row in tqdm(zotero.item_collections.iterrows(), total=len(zotero.item_collections),
                                desc="Linking collections"):
                 item = session.get(BibliographyItem, row['key'])
-                collection = session.get(Collection, row['collectionID'])
-                if item not in collection.items:
-                    collection.items.append(item)
+                if item is not None:
+                    collection = session.get(Collection, row['collectionID'])
+                    if item not in collection.items:
+                        collection.items.append(item)
                 session.commit()
 
 
