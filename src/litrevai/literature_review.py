@@ -9,13 +9,16 @@ import os
 from .llm import BaseLLM
 from .pdf2text import pdf2text
 from .query import Query
-from .schema import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes, Author
+from litrevai.model.models import ProjectModel, Response, QueryModel, Library, Collection, BibliographyItem, EntryTypes, Author
 from .util import parse_bibtex, _resolve_item_keys
 from .project import Project
-from .database import Database
+from litrevai.model.database import Database
 from .zotero_connector import ZoteroConnector
-from .vector_store import VectorStore
+from litrevai.model.vector_store import VectorStore
 from typing import TypeAlias
+import logging
+logger = logging.getLogger(__name__)
+#logging.basicConfig(filename='example.log', encoding='utf-8', level=logging.DEBUG)
 
 ItemCollection: TypeAlias = list[str] | str | pd.DataFrame | None
 
@@ -288,8 +291,8 @@ class LiteratureReview:
 
     def import_item(self, key, text, bibtex):
         item = self.db.add_item_by_bibtex(key=key, bibtex=bibtex, text=text)
-        self.vs.add_text(key, text)
-
+        #self.vs.add_text(key, text)
+        self.sync_vector_store()
         return item
 
     def import_csv(self, file_path):
@@ -351,32 +354,26 @@ class LiteratureReview:
         d = {library.id: library.name for library in libraries}
         return d
 
-    def update_vector_store(self, redo: bool = False) -> None:
-        """
-        Looks for items that have not been added to the vector store yet and adds them.
+    def sync_vector_store(self):
+        with self.db.Session() as session:
+            items = session.query(BibliographyItem).where(BibliographyItem.synced == False).all()
 
-        :param redo: If True, deletes all entries in the vector store before adding all items.
-        :return:
-        """
-        if redo:
-            self.vs.delete_all()
+            progress_bar = tqdm(desc='Syncing Vector Store', total=len(items))
+            for item in items:
+                success = self.vs.add_text(item.key, item.text)
+                if success:
+                    item.synced = True
+                else:
+                    logger.warning("Failed to sync item {item.key}: {item.text}")
+                progress_bar.update()
+            session.commit()
 
-        items = self.db.items
-        keys_in_vs = self.vs.get_keys()
-        items = items.drop(keys_in_vs)
-        progress_bar = tqdm(desc='Updating Vector Store', total=len(items))
-
-        for key, row in items.iterrows():
-            text = row['text']
-            self.vs.add_text(key, text)
-            progress_bar.update()
 
     def import_zotero(
             self,
             zotero_path: str | None = None,
-            filter_type_names: List[str] | None = ['journalArticle', 'conferencePaper'],
-            filter_libraries: List[str] | None = None,
-            like: str = None
+            like: str = 'Personal',
+            include_types: List[str] | None = ['journalArticle', 'conferencePaper'],
     ) -> None:
         """
         Connects to a local instance of Zotero and add items that fit to the filter criteria.
@@ -386,8 +383,10 @@ class LiteratureReview:
         :param filter_libraries: A list of libraries / groups to include. The personal library is called 'Personal'
         """
 
-        self.db.import_zotero(zotero_path, filter_type_names, filter_libraries, like)
-        self.update_vector_store()
+        zotero = ZoteroConnector(zotero_path=zotero_path, like=like, include_types=include_types)
+
+        self.db.import_zotero(zotero)
+        self.sync_vector_store()
 
 
     def search_author(self, search_name: str) -> pd.DataFrame:
@@ -412,7 +411,7 @@ class LiteratureReview:
         return df
 
 
-    def run_query(self, query_id, include_keys=None, save_responses=True, debug=False):
+    def run_query(self, query_id, include_keys=None, save_responses=True, debug=False, n=10):
         with self.db.Session() as session:
             query = session.get(QueryModel, query_id)
             project = query.project
@@ -439,14 +438,10 @@ class LiteratureReview:
 
                 prompt = query.prompt
 
-                additional_context = {
-                    'title': str(item.title)
-                }
-
                 answer, context = self.vs.rag(
                     prompt=prompt,
                     keys=item.key,
-                    additional_context=additional_context
+                    n=n
                 )
 
                 if debug:

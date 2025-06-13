@@ -2,14 +2,15 @@ from typing import List
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import Session, sessionmaker
 from tqdm.auto import tqdm
-from .acm import import_binder
-from .pdf2text import pdf2text
-from .prompt import Prompt
-from .schema import *
-from .util import timer_func
-from .zotero_connector import ZoteroConnector
-from .util import extract_year
-
+from litrevai.acm import import_binder
+from litrevai.pdf2text import pdf2text
+from litrevai.prompt import Prompt
+from .models import *
+from litrevai.util import timer_func
+from litrevai.zotero_connector import ZoteroConnector
+from litrevai.util import extract_year
+import logging
+logger = logging.getLogger(__name__)
 
 class Database:
 
@@ -375,172 +376,85 @@ class Database:
 
         return df
 
-    def import_zotero(
-            self,
-            zotero_path: str,
-            filter_type_names=None,
-            filter_libraries=None,
-            like=None,
-            prog_callback=None,
-            debug=False
-    ):
-        """
-
-        :param zotero:
-        :param filter_type_names: List of entry types to be included. Allowed options [conferencePaper, journalArticle, book, bookSection]
-        :param filter_libraries: List of groups to be included. If None, include all. For personal library use "Personal".
-        :return:
-        """
-
-        zotero = ZoteroConnector(zotero_path=zotero_path)
+    def import_zotero(self, zotero: ZoteroConnector):
 
         with self.Session(expire_on_commit=False) as session:
-
-            items = zotero.items
-
-            authors = zotero.authors
-            collections = zotero.collections
-            libraries = zotero.libraries
-
-            filter_libraries = libraries[libraries['name'].isin(filter_libraries)].index.to_list()
-
-            if filter_libraries:
-                items = items[items.libraryID.isin(filter_libraries)]
-                collections = collections[collections.libraryID.isin(filter_libraries)]
-                libraries = libraries[libraries.index.isin(filter_libraries)]
-
-            if filter_type_names:
-                items = items[items.typeName.isin(filter_type_names)]
-
-            for library_id, row in libraries.iterrows():
-                library = session.get(Library, library_id)
-
-                if not library:
-                    library = Library(id=library_id)
-                    library.name = row['name']
-                    session.add(library)
-
-            for collection_id, row in collections.iterrows():
-
-                collection = session.get(Collection, collection_id)
-
-                if not collection:
-                    collection = Collection(id=collection_id)
-                    collection.name = row['collectionName']
-                    collection.library_id = row['libraryID']
-                    parent_id = row['parentCollectionID']
-                    collection.parent_id = parent_id
-                    session.add(collection)
-
-            for author_id, row in authors.iterrows():
-
-                author = session.get(Author, author_id)
-
-                if not author:
-                    author = Author(id=author_id)
-                    author.first_name = row.first_name
-                    author.last_name = row.last_name
-                    session.add(author)
-
+            # Libraries
+            for lib_id, row in zotero.libraries.iterrows():
+                session.merge(Library(id=lib_id, name=row['name']))
             session.commit()
 
-            n = len(items)
+            # Collections
+            for collection_id, row in zotero.collections.iterrows():
+                session.merge(Collection(
+                    id=collection_id,
+                    name=row['collectionName'],
+                    library_id=row['libraryID'],
+                    parent_id=row['parentCollectionID'],
+                ))
+            session.commit()
 
-            i = 0
+            # Authors
+            for author_id, row in zotero.authors.iterrows():
+                session.merge(Author(
+                    id=author_id,
+                    first_name=row['firstName'],
+                    last_name=row['lastName']
+                ))
+            session.commit()
 
-            for key, row in tqdm(items.iterrows(), total=n, desc='Syncing Zotero'):
-
-                if prog_callback:
-                    prog_callback(i, n)
-                i += 1
+            # Bibliography items
+            for key, row in zotero.items.iterrows():
 
                 if session.get(BibliographyItem, key):
-                    if debug:
-                        print(f'Item with key {key} already in database')
+                    logger.info(f"Item {key} already exists")
                     continue
 
-                path = row['path']
-
                 try:
-
-                    ft_cache = os.path.join(
-                        os.path.dirname(path),
-                        '.zotero-ft-cache'
-                    )
-
+                    ft_cache = os.path.join(os.path.dirname(row['path']), '.zotero-ft-cache')
                     if os.path.exists(ft_cache):
                         with open(ft_cache, 'r') as f:
                             text = f.read()
                     else:
-                        text = pdf2text(path)
+                        text = pdf2text(row['path'])
                 except Exception as e:
-                    print(e)
+                    print(f"Error reading file {row['path']}: {e}")
                     continue
 
-                typeName = row['typeName']
+                entry_type = zotero_to_entrytype.get(row['typeName'], EntryTypes.MISC)
 
-                if typeName in zotero_to_entrytype:
-                    entry_type = zotero_to_entrytype[typeName]
-                else:
-                    entry_type = EntryTypes.MISC
-
-                bib_item = BibliographyItem(key=key)
-                bib_item.zotero_key = key
-                bib_item.title = row['title']
-                bib_item.typeName = entry_type.value
-                bib_item.text = text
-                bib_item.path = row['path']
-                bib_item.year = row['year']
-                bib_item.DOI = row['DOI']
-                bib_item.ISBN = row['ISBN']
-                bib_item.library_id = row['libraryID']
-
-                session.add(bib_item)
-
-                creator_ids = row['creatorIDs']
-
-                if isinstance(creator_ids, list):
-                    for creator_id in creator_ids:
-                        author = session.get(Author, creator_id)
-
-                        if author not in bib_item.authors:
-                            bib_item.authors.append(author)
-
-                collection_ids = row['collectionIDs']
-
-                if isinstance(collection_ids, list):
-                    for collection_id in collection_ids:
-                        collection = session.get(Collection, collection_id)
-
-                        if bib_item not in collection.items:
-                            collection.items.append(bib_item)
-
+                item = BibliographyItem(
+                    key=key,
+                    zotero_key=key,
+                    title=row['title'],
+                    typeName=entry_type.value,
+                    text=text,
+                    path=row['path'],
+                    year=row['year'],
+                    DOI=row.get('DOI'),
+                    ISBN=row.get('ISBN'),
+                    library_id=row['libraryID'],
+                    synced=False
+                )
+                session.add(item)
                 session.commit()
 
-    def load_binder(
-            self,
-            base_path: str,
-            project_id: int | None = None
-    ):
-        """
-        Import individual items from an ACM Binder.
+            # Link item -> creators
+            for i, row in tqdm(zotero.item_creators.iterrows(), total=len(zotero.item_creators),
+                               desc="Linking authors"):
+                item = session.get(BibliographyItem, row['key'])
+                author = session.get(Author, row['creatorID'])
+                if author not in item.authors:
+                    item.authors.append(author)
+                session.commit()
 
-        """
+            # Link item -> collections
+            for i, row in tqdm(zotero.item_collections.iterrows(), total=len(zotero.item_collections),
+                               desc="Linking collections"):
+                item = session.get(BibliographyItem, row['key'])
+                collection = session.get(Collection, row['collectionID'])
+                if item not in collection.items:
+                    collection.items.append(item)
+                session.commit()
 
-        try:
-            articles, df = load_binder(base_path)
 
-            for index, row in df.iterrows():
-                if 'doi' in row.index:
-                    doi = row['doi']
-                else:
-                    doi = row['ID']
-
-                if doi in articles.keys():
-                    print(doi)
-                    text = articles[doi]
-                    item = self.add_item_by_bibtex(key=doi, bibtex=row.to_dict(), text=text)
-                    if project_id:
-                        self.add_item_to_project(item.key, project_id)
-        except Exception as e:
-            print(e)

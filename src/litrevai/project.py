@@ -6,11 +6,11 @@ import pandas as pd
 from .util import _resolve_item_keys
 from .prompt import Prompt
 from .query import Query
-from .schema import BibliographyItem, ProjectModel, Collection, Library, QueryModel
+from .model.models import BibliographyItem, ProjectModel, Collection, Library, QueryModel
 
 if TYPE_CHECKING:
     from .literature_review import LiteratureReview
-    from .database import Database
+    from .model.database import Database
 
 
 class Project:
@@ -57,7 +57,7 @@ class Project:
         }
 
 
-    def create_query(self, name: str, prompt: Prompt):
+    def create_query(self, name: str, prompt: Prompt, exists_ok=True) -> Query:
         """
         Create a query and add it to the project.
         Raises an error if a query with the given name already exists.
@@ -83,14 +83,16 @@ class Project:
                 session.add(query_model)
                 session.commit()
             else:
-                raise Exception('Query with name {name} already exists.')
+                # TODO: Add check if prompt differs to give the user a warning
+                if not exists_ok:
+                    raise Exception(f'Query with name {name} already exists.')
 
         query = Query(self.lr, query_id=query_model.id)
         return query
 
     def delete_query(self, name: str) -> None:
 
-        with self.Session(expire_on_commit=False) as session:
+        with self.Session() as session:
             query_model = session.query(QueryModel).where(
                 QueryModel.project_id == self.project_id,
                 QueryModel.name == name,
@@ -199,7 +201,6 @@ class Project:
 
 
     def add_items_from_collection(self, collection_name):
-
 
         with self.Session() as session:
             collection = session.query(Collection).where(Collection.name == collection_name).first()

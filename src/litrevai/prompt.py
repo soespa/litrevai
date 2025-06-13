@@ -1,17 +1,10 @@
+import json
 import re
 import importlib.resources
 from typing import List, Mapping
 
 package_name = __package__
 
-
-def load_prompt(name):
-    if package_name is None:
-        with open(f'data/prompts/{name}.txt', 'r') as f:
-            return f.read()
-
-    with importlib.resources.open_text(package_name + '.data.prompts', f'{name}.txt') as file:
-        return file.read()
 
 
 prompt_registry = {}
@@ -37,12 +30,28 @@ class Prompt:
         """
         self.question = question
         self.params = params
-        self.system_prompt = load_prompt(self.name)
+        self.system_prompt = self._load_system_prompt()
+        self.search_phrase = question
 
         if 'concept' in params:
             concept = params.get('concept')
-            self.system_prompt = self.system_prompt + f"Consider the following definition: {concept}\n"
+            self.system_prompt = self.system_prompt + f"\nConsider the following definition: {concept}\n"
 
+        if 'examples' in params:
+            examples = params.get('examples')
+            self.system_prompt = self.system_prompt + f"\nConsider the following examples: {examples}\n"
+
+        if 'search_phrase' in params:
+            search_phrase = params.get('search_phrase')
+            self.search_phrase = search_phrase
+
+    def _load_system_prompt(self):
+        if package_name is None:
+            with open(f'data/prompts/{self.name}.txt', 'r') as f:
+                return f.read()
+
+        with importlib.resources.open_text(package_name + '.data.prompts', f'{self.name}.txt') as file:
+            return file.read()
 
     def parse_value(self, answer):
         return answer
@@ -139,6 +148,7 @@ class OptionsPrompt(Prompt):
                 return option
         return None
 
+
 @register_prompt
 class LikertPrompt(Prompt):
     """
@@ -208,3 +218,134 @@ class OpenPrompt(Prompt):
     def parse_value(self, answer):
         return answer
 
+
+@register_prompt
+class CriteriaPrompt(Prompt):
+    """
+    """
+    name: str = 'criteria'
+    criteria: Mapping[str, str]
+
+    def __init__(self, question: str, criteria: Mapping[str, str], **params):
+
+        self.criteria = criteria
+        params['criteria'] = criteria
+
+        super().__init__(question, **params)
+
+        criteria_string = '\n'.join([f'- **{key}**: {value}' for key, value in self.criteria.items()])
+        self.system_prompt = self.system_prompt.format(criteria=criteria_string)
+
+
+    def messages(self, context):
+        messages = [
+            {
+                'role': 'system',
+                'content': self.system_prompt
+            },
+            {
+                'role': 'user',
+                'content': f'Question: {self.question}\n\nContext: {context}\n\n"'
+            }
+        ]
+        return messages
+
+    def parse_value(self, answer):
+
+        match = re.search(r'\{.+\}', answer, flags=re.DOTALL)
+
+        if match:
+            try:
+                d = json.loads(match.group(0))
+                return d
+            except Exception as e:
+                print(e)
+                return None
+
+
+        return None
+
+
+
+class CustomPrompt(Prompt):
+    """
+        """
+    name: str = 'custom'
+
+    def __init__(self, system_prompt: str, question: str, **params):
+
+        self.system_prompt = system_prompt
+
+        super().__init__(question, **params)
+
+
+    def _load_system_prompt(self):
+        return self.system_prompt
+
+    def messages(self, context):
+        messages = [
+            {
+                'role': 'system',
+                'content': self.system_prompt
+            },
+            {
+                'role': 'user',
+                'content': f'Question: {self.question}\n\nContext: {context}\n\n"'
+            }
+        ]
+        return messages
+
+    def parse_value(self, answer):
+
+        return answer
+
+
+@register_prompt
+class ListExtractionPrompt(Prompt):
+    """
+    """
+    name: str = 'list_extraction'
+
+    def __init__(self, question: str, examples: List[str] | None = None, **params):
+
+        super().__init__(question, **params)
+
+        examples_string = ''
+
+        if examples:
+            self.examples = examples
+            params['example'] = examples
+
+            examples_string = '\n'.join([f'- {example}' for example in self.examples])
+            examples_string = '**Examples**:\n' + examples_string
+
+        self.system_prompt = self.system_prompt.format(examples=examples_string)
+
+
+    def messages(self, context):
+        messages = [
+            {
+                'role': 'system',
+                'content': self.system_prompt
+            },
+            {
+                'role': 'user',
+                'content': f'Question: {self.question}\n\nContext: {context}\n\n"'
+            }
+        ]
+        return messages
+
+    def parse_value(self, answer):
+
+        match = re.search(r'\{.+\}', answer, flags=re.DOTALL)
+
+        if match:
+            try:
+                d = json.loads(match.group(0))
+                return d
+            except Exception as e:
+                print(e)
+                return None
+
+
+        return None

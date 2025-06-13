@@ -1,13 +1,32 @@
+import os
 import re
 import bibtexparser
 import pandas as pd
 from time import time
 
+from litrevai.pdf2text import pdf2text
+
 
 def strip_references(text):
+    # TODO: Bug when there are no references
     match = re.split('REFERENCES', text, flags=re.MULTILINE)
     text = ''.join(match[:-1])
     return text
+
+
+
+def extract_text(path: str) -> str:
+    try:
+        ft_cache = os.path.join(os.path.dirname(path), '.zotero-ft-cache')
+        if os.path.exists(ft_cache):
+            with open(ft_cache, 'r') as f:
+                return f.read()
+        else:
+            return pdf2text(path)
+    except Exception as e:
+        print(f"Error processing file {path}: {e}")
+        return ""
+
 
 
 def extract_year(date):

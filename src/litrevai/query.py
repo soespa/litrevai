@@ -4,7 +4,7 @@ from typing import List, TYPE_CHECKING
 import pandas as pd
 
 from .prompt import Prompt
-from .schema import QueryModel
+from .model.models import QueryModel
 from .topic_modelling import TopicModel
 from .util import _resolve_item_keys
 

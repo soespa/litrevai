@@ -1,4 +1,8 @@
+import logging
 import sys
+
+from litrevai.topic_modelling import TopicModel
+
 sys.path.append('../src')
 
 import pytest
@@ -6,18 +10,22 @@ import pandas as pd
 from litrevai import LiteratureReview, OpenPrompt, ListPrompt, OpenAIModel
 from litrevai.project import Project
 from litrevai.query import Query
-from litrevai.topic_modelling import TopicModel
+
 import importlib.resources
 
-
-@pytest.fixture(scope="session")
-def db(tmpdir_factory):
-    fn = tmpdir_factory.mktemp("db")
-    lr = LiteratureReview(fn)
-    return fn
+logger = logging.getLogger(__name__)
 
 
 project_name = "New Project"
+
+def test_import_zotero(db):
+    lr = LiteratureReview(db)
+
+    lr.import_zotero(like='Personal/LitRevAI')
+
+    items = lr.items
+
+    assert len(items) == 4
 
 def test_import_documents(db):
     lr = LiteratureReview(db)
@@ -54,13 +62,16 @@ def test_create_project(db):
     assert len(items.iloc[0].text) > 0
 
 def test_create_query(db):
-    lr = LiteratureReview(db)
+
+    llm = OpenAIModel()
+
+    lr = LiteratureReview(db, llm=llm)
 
     project = lr.projects.get(project_name)
 
     prompt = ListPrompt(
         question="What is the article about?",
-        n=10
+        n=5
     )
 
     query_name = "New Query"
@@ -74,39 +85,35 @@ def test_create_query(db):
 
     assert isinstance(query, Query)
 
-    llm = OpenAIModel()
-    lr.set_llm(llm)
-
     query.run()
 
     print(query.responses)
+
+    logger.info(query.responses)
 
     assert isinstance(query.responses, pd.Series)
 
     assert len(query.responses) > 0
 
 
-# def test_topic_model(db):
-#     lr = LiteratureReview(db)
-#
-#     project_name = "New Project"
-#
-#     project = lr.projects.get(project_name)
-#
-#     query_name = "New Query"
-#
-#     query = project.queries.get(query_name)
-#
-#     topic_model = query.create_topic_model()
-#
-#     assert isinstance(topic_model, TopicModel)
+def test_topic_model(db):
+    llm = OpenAIModel()
 
+    lr = LiteratureReview(db, llm=llm)
 
+    assert len(lr.items) > 0
 
-# def test_import_zotero(db):
-#
-#     lr = LiteratureReview(db)
-#     lr.import_zotero(filter_type_names=['journalArticle', 'conferencePaper'], filter_libraries=["Personal"])
+    project = lr.projects.get(project_name)
+
+    query_name = "New Query"
+
+    query = project.queries.get(query_name)
+
+    print(query)
+
+    topic_model = query.create_topic_model()
+
+    assert isinstance(topic_model, TopicModel)
 
 def test_delete_projects(db):
 
@@ -116,3 +123,5 @@ def test_delete_projects(db):
         lr.delete_project(name)
 
     assert len(lr.projects) == 0
+
+

@@ -56,7 +56,7 @@ class OpenAIModel(BaseLLM):
                 temperature=temperature,
                 max_completion_tokens=max_new_tokens,
                 top_p=top_p,
-                tool_choice="auto"
+                #tool_choice="auto"
             )
 
             # Extract the generated text from the response

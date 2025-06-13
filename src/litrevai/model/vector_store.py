@@ -5,14 +5,19 @@ import pandas as pd
 from lancedb.embeddings import get_registry
 from lancedb.pydantic import LanceModel, Vector, List
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from .database import *
-from .util import strip_references, _resolve_item_keys
+from litrevai.util import strip_references, _resolve_item_keys
 import torch
 
+import logging
 
+
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from .literature_review import LiteratureReview
+    from litrevai.literature_review import LiteratureReview
 
 
 if torch.backends.mps.is_available():
@@ -51,12 +56,16 @@ class VectorStore:
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
-            length_function=len)
-
+            length_function=len
+        )
 
 
     @property
     def llm(self):
+        if self.lr.llm is None:
+            raise Exception(
+                'Operation requires a language model to be defined. To set up an language model use lr.set_llm(...)'
+            )
         return self.lr.llm
 
     def delete_all(self):
@@ -73,14 +82,13 @@ class VectorStore:
 
         return list(docs['key'].unique())
 
-    def add_text(self, key, text, debug=False):
+    def add_text(self, key, text):
 
         if len(self.documents.search().where(f'key = "{key}"').to_pandas()) > 0:
-            if debug:
-                print(f'Document with key {key} already in Vector store')
+            logger.warning(f'Document with key {key} already in Vector store')
             return False
 
-        text = strip_references(text)
+        logger.info(f'Added item {key} to vectorstore with length {len(text)} characters')
 
         texts = self.splitter.split_text(text)
 
@@ -128,17 +136,58 @@ class VectorStore:
         if sort_by_position:
             context = context.sort_values('chunk')
 
+
         return context
+
+
+
+    def format_context(self, context, add_meta=True):
+
+        formatted_context = ''
+
+        grouped = context.groupby('key')
+
+        for name, group in grouped:
+
+            key = name
+
+            item = self.lr.get_item(key)
+
+            if add_meta:
+                meta = ''
+                title = item.title
+                if title:
+                    meta += f'Title: {item.title}\n'
+                authors_list = item.authors_list
+                if len(authors_list) > 0:
+                    authors = ', '.join(item.authors_list)
+                    meta += f'Authors: {authors}\n'
+                year = item.year
+                if year:
+                    meta += f'Year: {year}\n'
+                keywords = item.keywords
+                if keywords:
+                    meta += f'Keywords: {keywords}\n'
+
+                formatted_context += meta + '\n'
+
+            text = "\n\n".join(group['text'])
+
+            formatted_context += text + '\n'
+
+        return formatted_context
+
 
     def rag(
             self,
-            prompt,
+            prompt: Prompt | str,
             keys: None | str | List[str] = None,
             max_new_tokens: int = 2048,
             temperature: float = 0.6,
             top_p: float = 0.9,
             sort_by_position=True,
-            n=20,
+            n=10,
+            add_meta=True,
             additional_context: dict | None = None
     ) -> Tuple[str, str]:
 
@@ -156,9 +205,13 @@ class VectorStore:
         :return: Tuple with the answer and the retrieved context.
         """
 
-        context = self.get_context(search_phrase=prompt.question, items=keys, n=n, sort_by_position=sort_by_position)
+        if isinstance(prompt, str):
+            from litrevai.prompt import OpenPrompt
+            prompt = OpenPrompt(question=prompt)
 
-        formatted_context = "\n\n".join(context['text'])
+        context = self.get_context(search_phrase=prompt.search_phrase, items=keys, n=n, sort_by_position=sort_by_position)
+
+        formatted_context = self.format_context(context, add_meta=add_meta)
 
         if additional_context is not None:
             lines = []

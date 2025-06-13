@@ -5,12 +5,12 @@ from enum import Enum
 from typing import Literal
 
 import pandas as pd
-from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint, literal
+from sqlalchemy import Column, String, Integer, ForeignKey, Table, DateTime, UniqueConstraint, literal, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column, Session
 from sqlalchemy.sql import func
 
-from .prompt import prompt_registry
+from litrevai.prompt import prompt_registry
 
 
 class EntryTypes(Enum):
@@ -124,6 +124,8 @@ class BibliographyItem(Base):
     time_created = mapped_column(DateTime(timezone=True), server_default=func.now())
     time_updated = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
+    synced = mapped_column(Boolean, nullable=True, default=False)
+
     authors = relationship("Author", secondary=item_author_association, back_populates="items", lazy='joined')
     responses = relationship("Response", back_populates="item")
     collections = relationship('Collection', secondary=item_collection_association, back_populates="items", lazy='joined')
@@ -233,7 +235,7 @@ class Response(Base):
         s = pd.Series({
             'text': self.text,
             'item_key': self.item_key,
-            'query_od': self.query_id,
+            'query_id': self.query_id,
             'docs': self.get_list()
         }, name=self.id)
         return s
@@ -271,6 +273,10 @@ class Library(Base):
 
         return df
 
+    def __repr__(self):
+        return f"Library(id={self.id}, name='{self.name}')"
+
+
 
 class ProjectModel(Base):
     __tablename__ = 'projects'
@@ -282,6 +288,8 @@ class ProjectModel(Base):
     items = relationship('BibliographyItem', secondary=item_project_association, back_populates="projects")#, lazy='joined')
     queries = relationship('QueryModel', back_populates='project')#, lazy='joined')
 
+    def __repr__(self):
+        return f"Project(id={self.id}, name='{self.name}')"
 
 
 class Collection(Base):

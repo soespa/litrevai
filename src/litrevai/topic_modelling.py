@@ -201,7 +201,7 @@ class TopicModel:
 
     def fit_model(
             self,
-            min_cluster_size=5,
+            min_cluster_size=2,
             min_samples=None,
             n_neighbors=15,
             n_components=5,
@@ -210,6 +210,7 @@ class TopicModel:
             seed_topic_list=None,
             min_df=1,
             max_df=0.8,
+            nr_topics=None,
     ):
 
         stop_words = list(stopwords.words('english'))
@@ -240,16 +241,18 @@ class TopicModel:
         topic_model = BERTopic(
             embedding_model=self.embedding_model,
             umap_model=umap_model,
-            #umap_model=empty_dimensionality_model,
             vectorizer_model=vectorizer_model,
             hdbscan_model=hdbscan_model,
             language=language,
             top_n_words=20,
             verbose=False,
             calculate_probabilities=True,
-            # nr_topics=15
+            nr_topics=nr_topics,
             seed_topic_list=seed_topic_list
         )
+
+        print(self.docs)
+
         topics, probs = topic_model.fit_transform(self.docs, self.embeddings)
 
         self.topic_model = topic_model
